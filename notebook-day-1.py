@@ -71,7 +71,7 @@ def _():
     import numpy as np
     import numpy.linalg as la
 
-    return (np,)
+    return np, plt, sci
 
 
 @app.cell(hide_code=True)
@@ -297,6 +297,37 @@ def _(mo):
     return
 
 
+@app.cell
+def _(J, M, g, l, np, sci):
+    def redstart_solve(t_span, y0, f_phi):
+        def dynamics(t, s):
+            # Déballage du vecteur d'état
+            x, vx, y, vy, theta, omega = s
+        
+            # Récupération de la commande à l'instant t
+            f, phi = f_phi(t, s)
+        
+            # Projection des forces (avec le signe correct !)
+            fx = -f * np.sin(theta + phi)
+            fy = f * np.cos(theta + phi)
+        
+            # Application de la 2ème loi de Newton
+            ax = fx / M
+            ay = (fy / M) - g
+        
+            # Calcul du couple et accélération angulaire
+            alpha = (-f * l * np.sin(phi)) / (2 * J)
+        
+            # Retourne les dérivées: [dx, dvx, dy, dvy, dtheta, domega]
+            return [vx, ax, vy, ay, omega, alpha]
+
+        # Résolution numérique du système
+        res = sci.solve_ivp(dynamics, t_span, y0, dense_output=True)
+        return res.sol
+
+    return (redstart_solve,)
+
+
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
@@ -311,6 +342,39 @@ def _(mo):
     return
 
 
+@app.cell
+def _(g, l, np, plt, redstart_solve):
+    def free_fall_example():
+        t_span = [0.0, 5.0]
+        y0 = [0.0, 0.0, 10.0, 0.0, 0.0, 0.0]  # [x, vx, y, vy, theta, omega]
+
+        def f_phi(t, y):
+            return np.array([0.0, 0.0])  # [f, phi]
+
+        sol = redstart_solve(t_span, y0, f_phi)
+
+        t = np.linspace(t_span[0], t_span[1], 1000)
+        y_t = sol(t)[2]
+
+        t_cross = np.sqrt(2 * (10 - l) / g)
+
+        plt.figure()
+        plt.plot(t, y_t, label=r"$y(t)$ (height in meters)")
+        plt.plot(t, l * np.ones_like(t), color="grey", ls="--", label=r"$y=\ell$")
+        plt.axvline(t_cross, color="grey", ls=":", label=rf"$t={t_cross:.2f}$ s")
+
+        plt.title("Free Fall")
+        plt.xlabel("time $t$")
+        plt.ylabel("height $y(t)$")
+        plt.grid(True)
+        plt.legend()
+
+        return plt.gcf()
+
+    free_fall_example()
+    return
+
+
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
@@ -322,6 +386,54 @@ def _(mo):
 
     Simulate the corresponding scenario, display graphically the results and check that your solution works as expected.
     """)
+    return
+
+
+@app.cell
+def _(l, np, plt, redstart_solve):
+    def controlled_landing_example():
+        t_span = [0.0, 5.0]
+        y0 = [0.0, 0.0, 10.0, -2.0, 0.0, 0.0] 
+    
+        def f_phi(t, y):
+            f = 0.384 * t + 0.44
+            return np.array([f, 0.0])
+        
+        sol = redstart_solve(t_span, y0, f_phi)
+
+        t = np.linspace(t_span[0], t_span[1], 1000)
+    
+        y_t = sol(t)[2]
+        vy_t = sol(t)[3]
+        f_t = 0.384 * t + 0.44
+
+        fig, ax = plt.subplots(figsize=(8, 5))
+
+        ax.plot(t, y_t, label=r"Position $y(t)$")
+        ax.plot(t, vy_t, label=r"Vitesse $\dot{y}(t)$")
+        ax.plot(t, f_t, label=r"Force $f(t)$")
+
+        ax.axhline(l/2, color="grey", ls="--", label=r"$y=\ell/2$")
+        ax.axhline(0, color="grey", ls=":", label=r"$\dot{y}=0$")
+
+        ax.set_title("Controlled Landing")
+        ax.set_xlabel("time $t$")
+        ax.grid(True)
+        ax.legend()
+
+        final_state = sol(5.0)
+
+        print("Final state at t=5:")
+        print("x(5) =", final_state[0])
+        print("vx(5) =", final_state[1])
+        print("y(5) =", final_state[2])
+        print("vy(5) =", final_state[3])
+        print("theta(5) =", final_state[4])
+        print("omega(5) =", final_state[5])
+
+        return plt.gcf()
+
+    controlled_landing_example()
     return
 
 

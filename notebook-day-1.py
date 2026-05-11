@@ -146,6 +146,24 @@ def _(mo):
     return
 
 
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    La force de poussée $f$ s'applique à la base du booster. L'angle total de la poussée par rapport à la verticale est la somme de l'inclinaison du booster $\theta$ et de l'orientation de la tuyère $\phi$.
+
+    En projetant cette force sur les axes cartésiens, et en respectant la convention trigonométrique — un angle positif $\theta$ penche le booster vers la gauche, ce qui oriente la force vers l'axe des abscisses négatives — on obtient :
+
+    $$
+    f_x = -f \sin(\theta + \phi)
+    $$
+
+    $$
+    f_y = f \cos(\theta + \phi)
+    $$
+    """)
+    return
+
+
 @app.cell
 def _(np):
     def force_components(f, theta, phi):
@@ -162,6 +180,20 @@ def _(mo):
     ## 🧩 Center of Mass
 
     Give the ordinary differential equation that governs the evolution of the position $(x, y)$ of the center of mass of the booster.
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    D'après la deuxième loi de Newton appliquée au centre de gravité ($\sum \vec{F} = M\vec{a}$), les accélérations dépendent des forces calculées précédemment et du poids de la fusée.
+
+    * Sur l'axe horizontal, seule la composante $f_x$ intervient :
+    $$M\ddot{x} = f_x \implies \ddot{x} = \frac{f_x}{M}$$
+
+    * Sur l'axe vertical, la gravité s'oppose à la poussée :
+    $$M\ddot{y} = f_y - Mg \implies \ddot{y} = \frac{f_y}{M} - g$$
     """)
     return
 
@@ -187,6 +219,16 @@ def _(mo):
     return
 
 
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    Le booster est modélisé comme un tube rigide uniforme de longueur $\ell$ et de masse $M$. Le moment d'inertie pour un cylindre (ou une tige fine) tournant autour de son centre de masse (situé à $\ell/2$) est donné par la formule classique :
+
+    $$J = \frac{1}{12} M \ell^2$$
+    """)
+    return
+
+
 @app.cell
 def _(M, l):
     J = M * l**2 / 12
@@ -200,6 +242,18 @@ def _(mo):
     ## 🧩 Tilt
 
     Give the ordinary differential equation that governs the evolution of the tilt angle $\theta$.
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    L'évolution de l'angle $\theta$ est régie par le principe fondamental de la dynamique en rotation ($\sum \tau = J\ddot{\theta}$).
+
+    Le couple ($\tau$) est généré par la composante de la force perpendiculaire au booster, soit $f \sin(\phi)$, appliquée à une distance $\ell/2$ du centre de masse. Le signe négatif traduit le fait qu'un angle $\phi$ positif crée une rotation qui s'oppose à l'inclinaison positive $\theta$.
+
+    $$J\ddot{\theta} = -f \sin(\phi) \cdot \frac{\ell}{2} \implies \ddot{\theta} = -\frac{f \ell \sin(\phi)}{2J}$$
     """)
     return
 
@@ -231,6 +285,18 @@ def _(mo):
     $$
     \dot{s} = F(s, f, \phi).
     $$
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    * **Dimension de l'espace d'état :** $n = 6$. Nous avons besoin de la position et de la vitesse pour les 3 degrés de liberté ($x, y, \theta$).
+    * **Vecteur d'état :** $s = \begin{bmatrix} x & v_x & y & v_y & \theta & \omega \end{bmatrix}^T$
+    * **Fonction F (Équation d'état) :** Elle regroupe les dérivées du premier ordre calculées précédemment pour dicter l'évolution complète du système :
+
+    $$\dot{s} = F(s, f, \phi) = \begin{bmatrix} v_x \\ \frac{1}{M}(-f \sin(\theta + \phi)) \\ v_y \\ \frac{1}{M}(f \cos(\theta + \phi)) - g \\ \omega \\ -\frac{f \ell \sin(\phi)}{2J} \end{bmatrix}$$
     """)
     return
 
@@ -293,6 +359,42 @@ def _(mo):
         return plt.gcf()
     free_fall_example()
     ```
+    """)
+    return
+
+
+@app.cell
+def _(mo):
+    mo.md(r"""
+    ## 🧩 Simulation
+
+    La fonction `redstart_solve` intègre numériquement le système d'équations différentielles
+    en utilisant `scipy.integrate.solve_ivp` avec la méthode **Runge-Kutta RK45**.
+
+    L'option `dense_output=True` permet de récupérer une solution **continue** interpolée,
+    qu'on peut évaluer à n'importe quel instant $t$ (pas seulement aux points de grille).
+
+    La fonction retournée `sol(t)` accepte :
+    - un scalaire $t$ → retourne un vecteur de taille 6
+    - un tableau 1D de temps → retourne une matrice $(6 \times N)$
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    ## 🧩 Simulation
+
+    La fonction `redstart_solve` intègre numériquement le système d'équations différentielles
+    en utilisant `scipy.integrate.solve_ivp` avec la méthode **Runge-Kutta RK45**.
+
+    L'option `dense_output=True` permet de récupérer une solution **continue** interpolée,
+    qu'on peut évaluer à n'importe quel instant $t$ (pas seulement aux points de grille).
+
+    La fonction retournée `sol(t)` accepte :
+    - un scalaire $t$ → retourne un vecteur de taille 6
+    - un tableau 1D de temps → retourne une matrice $(6 \times N)$
     """)
     return
 
@@ -378,6 +480,23 @@ def _(g, l, np, plt, redstart_solve):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
+    ### 🧩 Test de Chute Libre : Validation
+
+    **1. Attente théorique :**
+    En chute libre ($f=0$), l'équation du mouvement est $y(t) = y(0) - \frac{1}{2}gt^2$.
+    Pour atteindre la hauteur $y = \ell$ (avec $y(0)=10$, $g=1$ et $\ell=2$), on trouve analytiquement $t = 4$ s.
+
+    **2. Vérification numérique :**
+    La simulation montre que la courbe numérique (bleue) croise bien la cible $y=2$ très exactement à l'abscisse $t = 4.00$ s.
+
+    **Conclusion :** Cette correspondance parfaite valide l'exactitude de notre champ de vecteurs (matrice d'état) et la robustesse de notre intégration avec `solve_ivp`.
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
     ## 🧩 Controlled Landing
 
     Assume that $x$, $\dot{x}$, $\theta$ and $\dot{\theta}$ are null at $t=0$ and that $y(0)= 10$ and $\dot{y}(0) = - 2$.
@@ -440,6 +559,25 @@ def _(l, np, plt, redstart_solve):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
+    ### 🧩 Atterrissage Contrôlé : Validation
+
+    *1. Attente théorique :*
+    Notre loi de commande $f(t) = 0.384t + 0.44$ a été calculée analytiquement pour forcer le booster à atterrir en douceur en 5 secondes ($y(5)=1$ et $\dot{y}(5)=0$).
+
+    *2. Vérification numérique :*
+    Les courbes de la simulation confirment le succès total de la manœuvre :
+    * *Position :* Atteint la cible $y=1$ sans jamais la dépasser (pas de crash).
+    * *Vitesse :* S'annule parfaitement à l'instant terminal $t=5$ s.
+    * *Force :* Reste strictement positive et croît linéairement (physiquement réalisable par un moteur).
+
+    *Conclusion :* Notre modèle dynamique valide notre calcul de commande : le "soft landing" est parfaitement exécuté tout en respectant les limites physiques du système.
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
     # Animations
 
     It's very handy to visualize the evolution of our booster "as a movie"!
@@ -455,7 +593,7 @@ def _(mo):
 def _():
     from svg import svg, transform, animate_transform
 
-    return
+    return (svg,)
 
 
 @app.cell(hide_code=True)
@@ -512,6 +650,89 @@ def _(mo):
     return
 
 
+@app.function
+def world(view_box, *objects):
+    x_min, x_max, y_min, y_max = view_box
+
+    width = x_max - x_min
+    height = y_max - y_min
+
+    objects_svg = "".join(str(obj) for obj in objects)
+
+    return f"""
+    <svg
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="{x_min} {-y_max} {width} {height}"
+        width="300"
+        height="300"
+        style="border: 1px solid black;"
+    >
+        <!-- Sky: cartesian y >= 0 -->
+        <rect
+            x="{x_min}"
+            y="{-y_max}"
+            width="{width}"
+            height="{y_max}"
+            fill="#87CEEB"
+        />
+
+        <!-- Ground: cartesian y <= 0 -->
+        <rect
+            x="{x_min}"
+            y="0"
+            width="{width}"
+            height="{-y_min}"
+            fill="#8B4513"
+        />
+
+        <!-- Cartesian objects: y-axis upwards -->
+        <g transform="scale(1,-1)">
+            <!-- Landing target: 2 meters wide, centered on (0,0) -->
+            <rect
+                x="-1"
+                y="-0.04"
+                width="2"
+                height="0.08"
+                fill="green"
+            />
+
+            {objects_svg}
+        </g>
+    </svg>
+    """
+
+
+@app.cell
+def _(mo, svg):
+    mo.hstack(
+        [
+            # Display an empty world
+            mo.Html(
+                world([-3, 3, -2, 4])
+            ),
+            # Display a world with a black square on top of the landing pad
+            mo.Html(
+                world(
+                    [-3, 3, -2, 4],
+                    svg.rect(x=-1, y=0, width=2, height=2, fill="black"),
+                )
+            ),
+            # Display a world with a red square in the top-left corner of the view box
+            # and a blue square on the top-right corner of the view box.
+            mo.Html(
+                world(
+                    [-3, 3, -2, 4],
+                    svg.rect(x=-3, y=2, width=2, height=2, fill="red"),
+                    svg.rect(x=1, y=2, width=2, height=2, fill="blue"),
+                )
+            )
+        ],
+        justify="space-around"
+    )
+
+    return
+
+
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
@@ -564,6 +785,97 @@ def _(mo):
     return
 
 
+@app.cell
+def _(M, g, l, np):
+    def booster(x, y, theta, f, phi):
+        # Dimensions visuelles du booster
+        body_width = 0.25
+        flame_width = 0.18
+
+        # Longueur de la flamme
+        flame_length = (f / (M * g)) * (l / 2) if M * g != 0 else 0.0
+
+        # Axe du booster (du centre vers le haut)
+        ux = -np.sin(theta)
+        uy =  np.cos(theta)
+
+        # Vecteur perpendiculaire à l'axe
+        nx =  np.cos(theta)
+        ny =  np.sin(theta)
+
+        # Centres du haut et du bas du booster
+        top_x  = x + (l / 2) * ux
+        top_y  = y + (l / 2) * uy
+        base_x = x - (l / 2) * ux
+        base_y = y - (l / 2) * uy
+
+        # Coins du rectangle du corps
+        p1 = (top_x  + (body_width / 2) * nx,  top_y  + (body_width / 2) * ny)
+        p2 = (top_x  - (body_width / 2) * nx,  top_y  - (body_width / 2) * ny)
+        p3 = (base_x - (body_width / 2) * nx, base_y - (body_width / 2) * ny)
+        p4 = (base_x + (body_width / 2) * nx, base_y + (body_width / 2) * ny)
+
+        body_points = " ".join(f"{px},{py}" for px, py in [p1, p2, p3, p4])
+
+        # Direction de la flamme = opposée à la poussée
+        dx =  np.sin(theta + phi)
+        dy = -np.cos(theta + phi)
+
+        # Perpendiculaire à la flamme
+        px = np.cos(theta + phi)
+        py = np.sin(theta + phi)
+
+        # Triangle de la flamme
+        flame_a = (base_x + (flame_width / 2) * px, base_y + (flame_width / 2) * py)
+        flame_b = (base_x - (flame_width / 2) * px, base_y - (flame_width / 2) * py)
+        flame_tip = (base_x + flame_length * dx, base_y + flame_length * dy)
+
+        flame_points = " ".join(
+            f"{qx},{qy}" for qx, qy in [flame_a, flame_b, flame_tip]
+        )
+
+        flame_svg = ""
+        if f > 0:
+            flame_svg = f'<polygon points="{flame_points}" fill="orange" />'
+
+        return f"""
+        <g>
+            {flame_svg}
+            <polygon points="{body_points}" fill="black" />
+        </g>
+        """
+
+    return (booster,)
+
+
+@app.cell
+def _(M, booster, g, l, mo, np):
+    mo.hstack(
+        [
+            mo.Html(
+                world(
+                    [-3, 3, -2, 4],
+                    booster(0, l/2, 0, 0, 0),
+                )
+            ),
+            mo.Html(
+                world(
+                    [-3, 3, -2, 4],
+                    booster(0, l, 0, M * g, 0),
+                )
+            ),
+            mo.Html(
+                world(
+                    [-3, 3, -2, 4],
+                    booster(-l/2, l, np.pi / 4, 2 * M * g, np.pi / 2),
+                )
+            ),
+        ],
+        justify="space-around",
+    )
+    return
+
+
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
@@ -608,6 +920,113 @@ def _(mo):
     ).center()
     ```
     """)
+    return
+
+
+@app.cell
+def _(M, g, l, np):
+    def booster_geometry(x, y, theta, f, phi):
+        body_width = 0.25
+        flame_width = 0.18
+
+        flame_length = (f / (M * g)) * (l / 2) if M * g != 0 else 0.0
+
+        ux = -np.sin(theta)
+        uy = np.cos(theta)
+
+        nx = np.cos(theta)
+        ny = np.sin(theta)
+
+        top_x = x + (l / 2) * ux
+        top_y = y + (l / 2) * uy
+        base_x = x - (l / 2) * ux
+        base_y = y - (l / 2) * uy
+
+        p1 = (top_x + (body_width / 2) * nx, top_y + (body_width / 2) * ny)
+        p2 = (top_x - (body_width / 2) * nx, top_y - (body_width / 2) * ny)
+        p3 = (base_x - (body_width / 2) * nx, base_y - (body_width / 2) * ny)
+        p4 = (base_x + (body_width / 2) * nx, base_y + (body_width / 2) * ny)
+
+        body_points = " ".join(f"{px},{py}" for px, py in [p1, p2, p3, p4])
+
+        dx = np.sin(theta + phi)
+        dy = -np.cos(theta + phi)
+
+        px = np.cos(theta + phi)
+        py = np.sin(theta + phi)
+
+        flame_a = (base_x + (flame_width / 2) * px, base_y + (flame_width / 2) * py)
+        flame_b = (base_x - (flame_width / 2) * px, base_y - (flame_width / 2) * py)
+        flame_tip = (base_x + flame_length * dx, base_y + flame_length * dy)
+
+        flame_points = " ".join(
+            f"{qx},{qy}" for qx, qy in [flame_a, flame_b, flame_tip]
+        )
+
+        return body_points, flame_points
+
+
+    def booster_anim(x, y, theta, f, phi, T, n_frames=60):
+        ts = np.linspace(0, T, n_frames, endpoint=False)
+
+        body_values = []
+        flame_values = []
+
+        for t in ts:
+            body_points, flame_points = booster_geometry(
+                x(t), y(t), theta(t), f(t), phi(t)
+            )
+            body_values.append(body_points)
+            flame_values.append(flame_points)
+
+        body_values_str = ";".join(body_values)
+        flame_values_str = ";".join(flame_values)
+
+        return f"""
+        <g>
+            <polygon points="{flame_values[0]}" fill="orange">
+                <animate
+                    attributeName="points"
+                    values="{flame_values_str}"
+                    dur="{T}s"
+                    repeatCount="indefinite"
+                />
+            </polygon>
+
+            <polygon points="{body_values[0]}" fill="black">
+                <animate
+                    attributeName="points"
+                    values="{body_values_str}"
+                    dur="{T}s"
+                    repeatCount="indefinite"
+                />
+            </polygon>
+        </g>
+        """
+
+    return (booster_anim,)
+
+
+@app.cell
+def _(M, booster_anim, g, l, mo, np):
+    def booster_anim_0():
+        T = 5.0
+        def x(t):
+            return -l/2 + l * (t / T)
+        def y(t):
+            return l/2 + l/2 * (t / T)
+        def theta(t):
+            return (t / T) * 2 * np.pi
+        def f(t):
+            return M * g * (t / T)
+        def phi(t):
+            return 2 * np.pi * (t / T)
+        return booster_anim(x, y, theta, f, phi, T=T)
+
+    mo.Html(
+        world([-3, 3, -2, 4], booster_anim_0())
+    ).center()
+
     return
 
 

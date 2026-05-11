@@ -967,7 +967,7 @@ def _(M, g, l, np):
 
 
     def booster_anim(x, y, theta, f, phi, T, n_frames=60):
-        ts = np.linspace(0, T, n_frames, endpoint=False)
+        ts = np.linspace(0, T, n_frames, endpoint=True)
 
         body_values = []
         flame_values = []
@@ -1045,6 +1045,223 @@ def _(mo):
 
     4. The "controlled landing" scenario (see above).
     """)
+    return
+
+
+@app.cell
+def _(booster_anim, l, mo, np, redstart_solve):
+    def simulated_booster_animation(
+        t_span,
+        y0,
+        f_phi,
+        view_box,
+        stop_at_ground=False,
+        extinguish_at_end=False,
+    ):
+        sol = redstart_solve(t_span, y0, f_phi)
+        T = t_span[1] - t_span[0]
+
+        # Temps de contact avec le sol : centre de masse à y = l/2
+        t_ground = T
+
+        if stop_at_ground:
+            ts = np.linspace(t_span[0], t_span[1], 1000)
+            y_values = sol(ts)[2]
+
+            indices = np.where(y_values <= l / 2)[0]
+
+            if len(indices) > 0:
+                t_ground = ts[indices[0]]
+
+        def clipped_time(t):
+            return min(t, t_ground)
+
+        def x_fun(t):
+            tc = clipped_time(t)
+            return sol(tc)[0]
+
+        def y_fun(t):
+            tc = clipped_time(t)
+            return max(sol(tc)[2], l / 2)
+
+        def theta_fun(t):
+            tc = clipped_time(t)
+            return sol(tc)[4]
+
+        def f_fun(t):
+            if extinguish_at_end and t >= t_ground:
+                return 0.0
+
+            tc = clipped_time(t)
+            return f_phi(tc, sol(tc))[0]
+
+        def phi_fun(t):
+            tc = clipped_time(t)
+            return f_phi(tc, sol(tc))[1]
+
+        return mo.Html(
+            world(
+                view_box,
+                booster_anim(x_fun, y_fun, theta_fun, f_fun, phi_fun, T=T)
+            )
+        )
+
+    return (simulated_booster_animation,)
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    Scénario 1: Chute Libre
+    """)
+    return
+
+
+@app.cell
+def _(np, simulated_booster_animation):
+    def scenario_1():
+        t_span = [0.0, 5.0]
+        y0 = [0.0, 0.0, 10.0, 0.0, 0.0, 0.0]
+
+        def f_phi(t, y):
+            return np.array([0.0, 0.0])
+
+        return simulated_booster_animation(
+            t_span,
+            y0,
+            f_phi,
+            view_box=[-3, 3, -2, 11],
+            stop_at_ground=True,
+        )
+
+    return (scenario_1,)
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    Scénario 2 : Poussée verticale constante f=Mg
+    """)
+    return
+
+
+@app.cell
+def _(M, g, np, simulated_booster_animation):
+    def scenario_2():
+        t_span = [0.0, 5.0]
+        y0 = [0.0, 0.0, 10.0, 0.0, 0.0, 0.0]
+
+        def f_phi(t, y):
+            return np.array([M * g, 0.0])
+
+        return simulated_booster_animation(t_span, y0, f_phi, [-3, 3, -3, 11])
+
+    return (scenario_2,)
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    Scénario 3 : Poussée f=Mg et ϕ=π/8
+    """)
+    return
+
+
+@app.cell
+def _(M, g, np, simulated_booster_animation):
+    def scenario_3():
+        t_span = [0.0, 5.0]
+        y0 = [0.0, 0.0, 10.0, 0.0, 0.0, 0.0]
+
+        def f_phi(t, y):
+            return np.array([M * g, np.pi / 8])
+
+        return simulated_booster_animation(t_span, y0, f_phi, [-15, 15, -5, 12])
+
+    return (scenario_3,)
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    Scénario 4 : Controlled landing
+    """)
+    return
+
+
+@app.cell
+def _(booster_anim, mo, np, redstart_solve):
+    def scenario_4():
+        # Simulation physique jusqu'à l'atterrissage
+        t_span = [0.0, 5.0]
+        y0 = [0.0, 0.0, 10.0, -2.0, 0.0, 0.0]
+
+        def f_phi(t, y):
+            f = 0.384 * t + 0.44
+            return np.array([f, 0.0])
+
+        sol = redstart_solve(t_span, y0, f_phi)
+
+        # Animation un peu plus longue pour voir le booster posé
+        T_anim = 6.0
+        t_landing = 5.0
+
+        def clipped_time(t):
+            return min(t, t_landing)
+
+        def x_fun(t):
+            return sol(clipped_time(t))[0]
+
+        def y_fun(t):
+            return sol(clipped_time(t))[2]
+
+        def theta_fun(t):
+            return sol(clipped_time(t))[4]
+
+        def f_fun(t):
+            # Avant l'arrivée : force calculée
+            # Après l'arrivée : moteur éteint
+            if t >= t_landing:
+                return 0.0
+            return 0.384 * t + 0.44
+
+        def phi_fun(t):
+            return 0.0
+
+        return mo.Html(
+            world(
+                [-3, 3, -2, 11],
+                booster_anim(
+                    x_fun,
+                    y_fun,
+                    theta_fun,
+                    f_fun,
+                    phi_fun,
+                    T=T_anim,
+                )
+            )
+        )
+
+    return (scenario_4,)
+
+
+@app.cell
+def _(mo, scenario_1, scenario_2, scenario_3, scenario_4):
+    mo.vstack(
+        [
+            mo.md("### 1. Free fall"),
+            scenario_1(),
+
+            mo.md("### 2. Constant thrust: $f = Mg$, $\\phi = 0$"),
+            scenario_2(),
+
+            mo.md("### 3. Constant thrust: $f = Mg$, $\\phi = \\pi/8$"),
+            scenario_3(),
+
+            mo.md("### 4. Controlled landing"),
+            scenario_4(),
+        ]
+    )
     return
 
 

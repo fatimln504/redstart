@@ -736,6 +736,17 @@ def _(mo, svg):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
+    Les trois scènes de test permettent de vérifier que l’environnement affiche correctement :
+    - un monde vide ;
+    - un objet placé sur la zone d’atterrissage ;
+    - des objets positionnés à différents endroits du repère cartésien.
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
     ## 🧩 Booster Drawing
 
     Create a `booster` function that:
@@ -873,6 +884,25 @@ def _(M, booster, g, l, mo, np):
         ],
         justify="space-around",
     )
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    ### Interprétation — Booster Drawing
+
+    La fonction `booster` représente le booster sous forme d’un corps rigide simplifié, dessiné comme un rectangle de longueur \(\ell\).
+    Sa position est définie par les coordonnées \((x,y)\) de son centre de masse, et son orientation est donnée par l’angle \(\theta\), mesuré par rapport à l’axe vertical.
+
+
+    Sa longueur est proportionnelle à l’intensité de la poussée \(f\). En particulier, lorsque \(f = Mg\), la longueur de la flamme est égale à \(\ell/2\), comme demandé dans l’énoncé.
+
+    Les trois cas de test illustrent :
+    1. un booster vertical sans poussée, donc sans flamme ;
+    2. un booster vertical avec une poussée \(f=Mg\), ce qui produit une flamme alignée avec l’axe du booster ;
+    3. un booster incliné avec un angle de réacteur non nul \(\phi\), ce qui modifie correctement l’orientation de la flamme.
+    """)
     return
 
 
@@ -1027,6 +1057,29 @@ def _(M, booster_anim, g, l, mo, np):
         world([-3, 3, -2, 4], booster_anim_0())
     ).center()
 
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    ### Interprétation — Booster Animation
+
+    La fonction `booster_anim` permet de passer d’un dessin statique à une animation SVG.
+    Au lieu de recevoir des valeurs constantes pour \(x\), \(y\), \(\theta\), \(f\) et \(\phi\), elle reçoit des fonctions dépendant du temps.
+
+    À chaque instant, la position, l’orientation, l’intensité de la poussée et la direction de la poussée sont recalculées.
+    Cela permet d’animer simultanément le corps du booster et la flamme du réacteur.
+
+    Dans l’exemple de test :
+    - le booster se déplace de la gauche vers la droite ;
+    - il monte légèrement ;
+    - il effectue une rotation complète ;
+    - l’intensité de la poussée augmente progressivement ;
+    - l’orientation de la flamme varie au cours du temps.
+
+    Cette animation confirme que la fonction met correctement à jour le corps du booster et la flamme à partir de fonctions dépendantes du temps.
+    """)
     return
 
 
@@ -1262,6 +1315,79 @@ def _(mo, scenario_1, scenario_2, scenario_3, scenario_4):
             scenario_4(),
         ]
     )
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    ### 🧩 Analyse des scénarios de simulation
+
+    Les animations générées permettent de valider visuellement le comportement de notre modèle d’état selon différentes conditions de poussée.
+
+    **Scénario 1 : Chute libre \((f=0)\)**
+
+    Sans poussée, la seule force appliquée au booster est son poids \(Mg\). Le booster subit donc une accélération gravitationnelle vers le bas.
+    Dans l’animation, il chute verticalement jusqu’à atteindre le sol. Une fois le contact avec le sol atteint, son mouvement est arrêté afin d’éviter qu’il traverse visuellement le pad d’atterrissage.
+
+    **Scénario 2 : Poussée d’équilibre stationnaire \((f=Mg,\ \phi=0)\)**
+
+    Dans ce cas, la poussée est verticale et alignée avec l’axe du booster. Elle compense exactement la gravité :
+
+    \[
+    \sum F_y = Mg - Mg = 0.
+    \]
+
+    Comme les vitesses initiales sont nulles, l’accélération est également nulle. Le booster reste donc en vol stationnaire parfait, ou *hovering*, à son altitude initiale \(y=10\).
+
+    **Scénario 3 : Poussée désaxée \((f=Mg,\ \phi=\pi/8)\)**
+
+    L’orientation de la tuyère crée une asymétrie physique importante.
+
+    1. La composante verticale de la force vaut :
+
+    \[
+    Mg\cos\left(\frac{\pi}{8}\right)
+    \]
+
+    Comme cette valeur est inférieure au poids \(Mg\), la poussée ne compense plus totalement la gravité. Le booster perd donc de l’altitude.
+
+    2. La composante horizontale de la force vaut :
+
+    \[
+    -Mg\sin\left(\frac{\pi}{8}\right)
+    \]
+
+    Elle est non nulle, ce qui génère une translation latérale du centre de masse.
+
+    3. Comme la force est appliquée à la base du booster et qu’elle est désaxée par rapport à son axe principal, elle crée un couple :
+
+    \[
+    \tau = -\frac{\ell}{2}f\sin(\phi).
+    \]
+
+    Ce couple entraîne une accélération angulaire, donc une rotation du booster sur lui-même.
+
+    Le comportement attendu est donc bien une combinaison de perte d’altitude, de déplacement latéral et de rotation.
+
+    **Scénario 4 : Atterrissage contrôlé (*Soft Landing*)**
+
+    Ce scénario valide l’objectif final du projet : réaliser un atterrissage doux du booster.
+
+    Grâce à la loi de commande polynomiale \(f(t)\), le booster descend progressivement depuis sa hauteur initiale tout en réduisant sa vitesse verticale. À l’instant \(t=5\) s, il atteint le sol avec :
+
+    \[
+    y(5)=\frac{\ell}{2}=1,
+    \qquad
+    \dot{y}(5)=0.
+    \]
+
+    Le moteur est ensuite coupé afin de représenter l’arrêt de la poussée après le contact avec le sol.
+
+    Dans le code, le temps physique d’atterrissage reste bien \(t=5\) s. L’animation est simplement prolongée légèrement après cet instant pour permettre de visualiser le booster posé au sol avec la flamme éteinte.
+
+    Il s’agit donc d’un atterrissage contrôlé par une commande planifiée en temps, et non d’une stabilisation en boucle fermée.
+    """)
     return
 
 

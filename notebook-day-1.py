@@ -71,7 +71,7 @@ def _():
     import numpy as np
     import numpy.linalg as la
 
-    return
+    return (np,)
 
 
 @app.cell(hide_code=True)
@@ -128,6 +128,14 @@ def _(mo):
     return
 
 
+@app.cell
+def _():
+    g = 1.0
+    M = 1.0
+    l = 2.0
+    return M, g, l
+
+
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
@@ -136,6 +144,16 @@ def _(mo):
     Compute the cartesian coordinates $f_x$ and $f_y$ of the force applied to the booster by the reactor, functions of $f$, $\theta$ and $\phi$.
     """)
     return
+
+
+@app.cell
+def _(np):
+    def force_components(f, theta, phi):
+        fx = -f * np.sin(theta + phi)
+        fy = f * np.cos(theta + phi)
+        return fx, fy
+
+    return (force_components,)
 
 
 @app.cell(hide_code=True)
@@ -148,6 +166,17 @@ def _(mo):
     return
 
 
+@app.cell
+def _(M, force_components, g):
+    def center_of_mass_acceleration(f, theta, phi):
+        fx, fy = force_components(f, theta, phi)
+        ax = fx / M
+        ay = fy / M - g
+        return ax, ay
+
+    return (center_of_mass_acceleration,)
+
+
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
@@ -158,6 +187,13 @@ def _(mo):
     return
 
 
+@app.cell
+def _(M, l):
+    J = M * l**2 / 12
+    J
+    return (J,)
+
+
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
@@ -166,6 +202,14 @@ def _(mo):
     Give the ordinary differential equation that governs the evolution of the tilt angle $\theta$.
     """)
     return
+
+
+@app.cell
+def _(J, l, np):
+    def angular_acceleration(f, phi):
+        return -(l / 2) * f * np.sin(phi) / J
+
+    return (angular_acceleration,)
 
 
 @app.cell(hide_code=True)
@@ -188,6 +232,28 @@ def _(mo):
     \dot{s} = F(s, f, \phi).
     $$
     """)
+    return
+
+
+@app.cell
+def _(angular_acceleration, center_of_mass_acceleration, np):
+    n = 6
+
+    def F(s, f, phi):
+        x, vx, y, vy, theta, omega = s
+
+        ax, ay = center_of_mass_acceleration(f, theta, phi)
+        alpha = angular_acceleration(f, phi)
+
+        return np.array([
+            vx,
+            ax,
+            vy,
+            ay,
+            omega,
+            alpha,
+        ])
+
     return
 
 

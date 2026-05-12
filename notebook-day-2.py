@@ -2638,6 +2638,242 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
+    ### 🧩 Contrôleur par placement de pôles — Principe
+
+    Dans la question précédente, on avait choisi un contrôleur manuel de la forme :
+
+    \[
+    K =
+    \begin{bmatrix}
+    0 & 0 & k_3 & k_4
+    \end{bmatrix}.
+    \]
+
+    Ce contrôleur permettait de stabiliser l’angle \(\Delta\theta\), mais il ne contrôlait pas directement la position latérale \(\Delta x\).
+    C’est pour cela que le booster pouvait encore dériver horizontalement.
+
+    Dans cette question, on cherche un contrôleur plus complet :
+
+    \[
+    K_{pp} =
+    \begin{bmatrix}
+    k_1 & k_2 & k_3 & k_4
+    \end{bmatrix}.
+    \]
+
+    La loi de commande devient :
+
+    \[
+    \Delta\phi(t)
+    =
+    -K_{pp}
+    \begin{bmatrix}
+    \Delta x(t) \\
+    \Delta \dot{x}(t) \\
+    \Delta \theta(t) \\
+    \Delta \dot{\theta}(t)
+    \end{bmatrix}.
+    \]
+
+    Cette fois-ci, la commande dépend aussi de \(\Delta x\) et \(\Delta \dot{x}\).
+    L’objectif est donc double :
+
+    1. ramener l’inclinaison \(\Delta\theta(t)\) vers zéro ;
+    2. ramener aussi la position latérale \(\Delta x(t)\) vers zéro.
+
+    Le système en boucle fermée s’écrit :
+
+    \[
+    \dot{X}_{\text{lat}}
+    =
+    (A_{\text{lat}} - B_{\text{lat}}K_{pp})X_{\text{lat}}.
+    \]
+
+    Pour que le système soit asymptotiquement stable, toutes les valeurs propres de la matrice :
+
+    \[
+    A_{\text{cl}} = A_{\text{lat}} - B_{\text{lat}}K_{pp}
+    \]
+
+    doivent avoir une partie réelle strictement négative.
+
+    La méthode du placement de pôles consiste à choisir à l’avance les valeurs propres souhaitées du système bouclé, puis à calculer automatiquement le gain \(K_{pp}\) correspondant.
+
+    Ici, on choisit par exemple les pôles :
+
+    \[
+    p_1=-0.4,\qquad
+    p_2=-0.4+0.3i,\qquad
+    p_3=-0.4-0.3i,\qquad
+    p_4=-0.8.
+    \]
+
+    Ces pôles sont tous dans le demi-plan gauche, donc ils assurent la stabilité asymptotique.
+    Leur partie réelle est de l’ordre de \(-0.4\), ce qui donne une convergence compatible avec l’objectif d’environ 20 secondes.
+
+    Les pôles complexes conjugués permettent d’obtenir une réponse légèrement oscillante mais amortie, tandis que le pôle \(-0.8\) apporte une dynamique plus rapide.
+    """)
+    return
+
+
+@app.cell
+def _(A_lat, B_lat, la, np, plt, sci, scipy):
+    def run_pole_placement_controller():
+        desired_poles = np.array([
+            -0.4,
+            -0.4 + 0.3j,
+            -0.4 - 0.3j,
+            -0.8,
+        ])
+
+        pole_result = scipy.signal.place_poles(A_lat, B_lat, desired_poles)
+        K_pp = pole_result.gain_matrix
+
+        A_cl_pp = A_lat - B_lat @ K_pp
+        eigvals_pp = la.eigvals(A_cl_pp)
+
+        t_span = [0.0, 30.0]
+
+        X0 = np.array([
+            0.0,        # Delta x(0)
+            0.0,        # Delta x_dot(0)
+            np.pi / 4,  # Delta theta(0)
+            0.0,        # Delta theta_dot(0)
+        ])
+
+        def closed_loop_dynamics(t, X):
+            delta_phi_value = -(K_pp @ X)[0]
+            return A_lat @ X + B_lat.flatten() * delta_phi_value
+
+        result = sci.solve_ivp(
+            closed_loop_dynamics,
+            t_span,
+            X0,
+            dense_output=True,
+            max_step=0.01,
+            rtol=1e-9,
+            atol=1e-9,
+        )
+
+        t_values = np.linspace(t_span[0], t_span[1], 3000)
+        X_values = result.sol(t_values)
+
+        delta_x_values = X_values[0]
+        delta_x_dot_values = X_values[1]
+        delta_theta_values = X_values[2]
+        delta_theta_dot_values = X_values[3]
+
+        delta_phi_values = np.array([
+            -(K_pp @ X_values[:, i])[0]
+            for i in range(X_values.shape[1])
+        ])
+
+        max_theta = np.max(np.abs(delta_theta_values))
+        max_phi = np.max(np.abs(delta_phi_values))
+        x_at_20s = delta_x_values[np.argmin(np.abs(t_values - 20.0))]
+        theta_at_20s = delta_theta_values[np.argmin(np.abs(t_values - 20.0))]
+
+        fig_pp, ax_pp = plt.subplots(3, 1, figsize=(9, 9), sharex=True)
+
+        ax_pp[0].plot(t_values, delta_theta_values, label=r"$\Delta\theta(t)$")
+        ax_pp[0].axhline(0, color="black", ls=":")
+        ax_pp[0].axhline(np.pi / 2, color="grey", ls="--", label=r"$\pm\pi/2$")
+        ax_pp[0].axhline(-np.pi / 2, color="grey", ls="--")
+        ax_pp[0].set_ylabel(r"$\Delta\theta(t)$ (rad)")
+        ax_pp[0].grid(True)
+        ax_pp[0].legend()
+
+        ax_pp[1].plot(t_values, delta_phi_values, label=r"$\Delta\phi(t)$")
+        ax_pp[1].axhline(0, color="black", ls=":")
+        ax_pp[1].axhline(np.pi / 2, color="grey", ls="--", label=r"$\pm\pi/2$")
+        ax_pp[1].axhline(-np.pi / 2, color="grey", ls="--")
+        ax_pp[1].set_ylabel(r"$\Delta\phi(t)$ (rad)")
+        ax_pp[1].grid(True)
+        ax_pp[1].legend()
+
+        ax_pp[2].plot(t_values, delta_x_values, label=r"$\Delta x(t)$")
+        ax_pp[2].axhline(0, color="black", ls=":")
+        ax_pp[2].set_xlabel("time $t$ (s)")
+        ax_pp[2].set_ylabel(r"$\Delta x(t)$ (m)")
+        ax_pp[2].grid(True)
+        ax_pp[2].legend()
+
+        fig_pp.suptitle("Contrôleur par placement de pôles")
+        fig_pp.tight_layout()
+
+        print("Desired poles:", desired_poles)
+        print("K_pp =", K_pp)
+        print("Closed-loop eigenvalues:", eigvals_pp)
+        print("max |Delta theta| =", max_theta)
+        print("max |Delta phi| =", max_phi)
+        print("Delta theta at t=20s =", theta_at_20s)
+        print("Delta x at t=20s =", x_at_20s)
+        print("Constraints OK:", (max_theta < np.pi / 2) and (max_phi < np.pi / 2))
+        print("Asymptotically stable:", np.all(np.real(eigvals_pp) < 0))
+
+        return fig_pp, K_pp, eigvals_pp
+
+
+    pole_placement_fig, K_pp, eigvals_pp = run_pole_placement_controller()
+    pole_placement_fig
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    Les graphes confirment ce résultat.
+    L’inclinaison \(\Delta\theta(t)\) converge vers zéro après une réponse légèrement oscillante. Cette oscillation est cohérente avec la présence des pôles complexes conjugués :
+
+    \[
+    -0.4 \pm 0.3i.
+    \]
+
+    La commande \(\Delta\phi(t)\) reste toujours dans les limites autorisées. En effet, on obtient :
+
+    \[
+    \max |\Delta\phi(t)| \approx 0.408 \text{ rad}
+    \]
+
+    ce qui est largement inférieur à :
+
+    \[
+    \frac{\pi}{2} \approx 1.57 \text{ rad}.
+    \]
+
+    La contrainte sur l’inclinaison est également respectée :
+
+    \[
+    \max |\Delta\theta(t)| = \frac{\pi}{4} < \frac{\pi}{2}.
+    \]
+
+    On observe aussi que la position latérale \(\Delta x(t)\), contrairement au cas du contrôleur manuel, revient vers zéro.
+    Elle présente d’abord une dérive transitoire, atteignant environ \(-3\) m, puis elle est progressivement corrigée par le contrôleur.
+
+    À \(t=20\) s, les valeurs obtenues sont :
+
+    \[
+    \Delta\theta(20) \approx 0.0030 \text{ rad},
+    \]
+
+    et :
+
+    \[
+    \Delta x(20) \approx -0.0039 \text{ m}.
+    \]
+
+    Ces valeurs sont très proches de zéro, ce qui montre que l’objectif de convergence en moins de 20 secondes est atteint.
+
+    Ainsi, le placement de pôles permet d’améliorer le contrôleur manuel :
+    le booster ne se contente plus de se redresser, il revient également vers sa position latérale d’équilibre.
+    Le système latéral en boucle fermée est donc asymptotiquement stable et respecte les contraintes imposées sur \(\Delta\theta(t)\) et \(\Delta\phi(t)\).
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
     ## 🧩 Controller Tuned with Optimal Control
 
     Using optimal control, find a gain matrix $K_{oc}$ that satisfies the same set of requirements that the one defined using pole placement.

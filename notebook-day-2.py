@@ -71,7 +71,7 @@ def _():
     import numpy as np
     import numpy.linalg as la
 
-    return np, plt, scipy
+    return la, np, plt, scipy
 
 
 @app.cell(hide_code=True)
@@ -1089,61 +1089,161 @@ def _(mo):
     mo.md(r"""
     ### Équilibres du système
 
-    On cherche les états pour lesquels le booster reste immobile lorsque les entrées \(f\) et \(\phi\) sont constantes.
+    On cherche les configurations dans lesquelles le booster peut rester immobile lorsque les entrées \(f\) et \(\phi\) sont constantes.
 
-    L’état du système est :
-
-    \[
-    s = (x, v_x, y, v_y, \theta, \omega)
-    \]
-
-    À l’équilibre, on doit avoir :
+    Un équilibre correspond à une situation où, si le booster est placé dans cet état, il y reste sans bouger.
+    Autrement dit, toutes les dérivées de l’état doivent être nulles :
 
     \[
     \dot{s}=0.
     \]
 
-    Cela impose d’abord :
+    L’état du booster est :
+
+    \[
+    s = (x, v_x, y, v_y, \theta, \omega),
+    \]
+
+    où :
+    - \(x\) et \(y\) sont les coordonnées du centre de masse ;
+    - \(v_x\) et \(v_y\) sont les vitesses du centre de masse ;
+    - \(\theta\) est l’angle du booster par rapport à la verticale ;
+    - \(\omega=\dot{\theta}\) est sa vitesse angulaire.
+
+    Pour que le booster soit immobile, il faut d’abord que toutes les vitesses soient nulles :
 
     \[
     v_x=0,\qquad v_y=0,\qquad \omega=0.
     \]
 
-    Les accélérations doivent également être nulles :
+    Mais cela ne suffit pas.
+    Il faut aussi que les accélérations soient nulles, sinon le booster commencerait à bouger immédiatement après.
+
+    Avec notre modèle, les accélérations sont :
 
     \[
-    \ddot{x} = -\frac{f}{M}\sin(\theta+\phi)=0,
+    \ddot{x} = -\frac{f}{M}\sin(\theta+\phi),
     \]
 
     \[
-    \ddot{y} = \frac{f}{M}\cos(\theta+\phi)-g=0,
+    \ddot{y} = \frac{f}{M}\cos(\theta+\phi)-g,
     \]
 
     \[
-    \ddot{\theta} = -\frac{\ell}{2J}f\sin(\phi)=0.
+    \ddot{\theta} = -\frac{\ell}{2J}f\sin(\phi).
     \]
 
-    Comme \(f>0\) et \(|\phi|<\frac{\pi}{2}\), la dernière équation impose :
+    À l’équilibre, on impose donc :
+
+    \[
+    \ddot{x}=0,\qquad \ddot{y}=0,\qquad \ddot{\theta}=0.
+    \]
+
+    ---
+
+    ### 1. Condition sur la rotation
+
+    La condition \(\ddot{\theta}=0\) donne :
+
+    \[
+    -\frac{\ell}{2J}f\sin(\phi)=0.
+    \]
+
+    Comme on suppose :
+
+    \[
+    f>0,\qquad \ell>0,\qquad J>0,
+    \]
+
+    la seule possibilité est :
+
+    \[
+    \sin(\phi)=0.
+    \]
+
+    Or l’énoncé impose :
+
+    \[
+    |\phi|<\frac{\pi}{2}.
+    \]
+
+    Dans cet intervalle, la seule valeur qui annule le sinus est :
 
     \[
     \phi=0.
     \]
 
-    Ensuite, comme \(|\theta|<\frac{\pi}{2}\), l’équation horizontale impose :
+    Donc, à l’équilibre, la poussée doit être alignée avec l’axe du booster.
+    Si \(\phi\neq 0\), la force serait désaxée et créerait un couple, ce qui ferait tourner le booster.
+
+    ---
+
+    ### 2. Condition sur le mouvement horizontal
+
+    En remplaçant \(\phi=0\) dans l’équation horizontale, on obtient :
+
+    \[
+    \ddot{x} = -\frac{f}{M}\sin(\theta)=0.
+    \]
+
+    Comme \(f>0\), cela impose :
+
+    \[
+    \sin(\theta)=0.
+    \]
+
+    Or l’énoncé impose :
+
+    \[
+    |\theta|<\frac{\pi}{2}.
+    \]
+
+    Dans cet intervalle, la seule solution est :
 
     \[
     \theta=0.
     \]
 
-    Enfin, l’équation verticale donne :
+    Donc, à l’équilibre, le booster doit être vertical.
+    S’il était incliné, la poussée aurait une composante horizontale et le centre de masse commencerait à se déplacer latéralement.
+
+    ---
+
+    ### 3. Condition sur le mouvement vertical
+
+    Avec \(\theta=0\) et \(\phi=0\), l’équation verticale devient :
 
     \[
-    f = Mg.
+    \ddot{y}=\frac{f}{M}-g.
     \]
 
-    Les positions \(x\) et \(y\) peuvent être quelconques, car le modèle ne dépend pas de la position absolue du booster.
+    Pour avoir un équilibre, il faut :
 
-    Ainsi, les équilibres possibles sont :
+    \[
+    \ddot{y}=0.
+    \]
+
+    Donc :
+
+    \[
+    \frac{f}{M}-g=0,
+    \]
+
+    ce qui donne :
+
+    \[
+    f=Mg.
+    \]
+
+    La poussée doit donc compenser exactement le poids.
+    Si \(f<Mg\), le booster descend.
+    Si \(f>Mg\), le booster monte.
+
+    ---
+
+    ### Conclusion
+
+    Les équilibres possibles sont donc :
 
     \[
     s_e=(x_e,0,y_e,0,0,0),
@@ -1154,17 +1254,17 @@ def _(mo):
     \[
     f_e=Mg,\qquad \phi_e=0.
     \]
-    L’unique équilibre est :
+
+    Les positions \(x_e\) et \(y_e\) peuvent être quelconques, car le modèle ne dépend pas directement de la position absolue du booster.
+    Autrement dit, le booster peut être en vol stationnaire à n’importe quelle position, tant qu’il est vertical, immobile, et que sa poussée compense exactement son poids.
+
+    On peut donc résumer l’équilibre par :
 
     \[
-    \theta = 0, \qquad \phi = 0, \qquad f = Mg
+    \theta=0,\qquad \phi=0,\qquad f=Mg,
     \]
 
-    avec \(x\) et \(y\) quelconques, et toutes les vitesses nulles .
-
-
-
-    Le booster flotte verticalement avec une poussée exactement égale au poids, ce qui correspond à un vol stationnaire.
+    avec toutes les vitesses nulles.
     """)
     return
 
@@ -1317,9 +1417,248 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
+    On écrit le modèle linéarisé sous la forme standard :
+
+    \[
+    \dot{X}=AX+BU.
+    \]
+
+    Le vecteur d’état d’erreur est :
+
+    \[
+    X =
+    \begin{bmatrix}
+    \Delta x \\
+    \Delta v_x \\
+    \Delta y \\
+    \Delta v_y \\
+    \Delta \theta \\
+    \Delta \omega
+    \end{bmatrix}.
+    \]
+
+    Les entrées du système sont la poussée \(f\) et l’angle de la tuyère \(\phi\).
+    À l’équilibre, on a :
+
+    \[
+    f_e=Mg,
+    \qquad
+    \phi_e=0.
+    \]
+
+    On définit donc le vecteur d’entrée d’erreur :
+
+    \[
+    U =
+    \begin{bmatrix}
+    \Delta f \\
+    \Delta \phi
+    \end{bmatrix}
+    =
+    \begin{bmatrix}
+    f-Mg \\
+    \phi
+    \end{bmatrix}.
+    \]
+
+    À partir du modèle linéarisé, on obtient :
+
+    \[
+    \Delta \dot{x} = \Delta v_x,
+    \]
+
+    \[
+    \Delta \dot{v}_x = -g\Delta\theta - g\Delta\phi,
+    \]
+
+    \[
+    \Delta \dot{y} = \Delta v_y,
+    \]
+
+    \[
+    \Delta \dot{v}_y = \frac{1}{M}\Delta f,
+    \]
+
+    \[
+    \Delta \dot{\theta} = \Delta \omega,
+    \]
+
+    \[
+    \Delta \dot{\omega}
+    =
+    -\frac{Mg\ell}{2J}\Delta\phi.
+    \]
+
+    Ainsi, avant application numérique, les matrices du modèle linéarisé sont :
+
+    \[
+    A =
+    \begin{bmatrix}
+    0 & 1 & 0 & 0 & 0 & 0 \\
+    0 & 0 & 0 & 0 & -g & 0 \\
+    0 & 0 & 0 & 1 & 0 & 0 \\
+    0 & 0 & 0 & 0 & 0 & 0 \\
+    0 & 0 & 0 & 0 & 0 & 1 \\
+    0 & 0 & 0 & 0 & 0 & 0
+    \end{bmatrix},
+    \]
+
+    \[
+    B =
+    \begin{bmatrix}
+    0 & 0 \\
+    0 & -g \\
+    0 & 0 \\
+    \frac{1}{M} & 0 \\
+    0 & 0 \\
+    0 & -\frac{Mg\ell}{2J}
+    \end{bmatrix}.
+    \]
+
+    Avec les valeurs numériques du projet :
+
+    \[
+    M=1,\qquad g=1,\qquad \ell=2,
+    \]
+
+    et pour une tige de longueur \(\ell\) :
+
+    \[
+    J=\frac{1}{12}M\ell^2=\frac{1}{3}.
+    \]
+
+    On obtient alors :
+
+    \[
+    -\frac{Mg\ell}{2J}
+    =
+    -\frac{1\times 1\times 2}{2\times \frac{1}{3}}
+    =
+    -3.
+    \]
+
+    Les matrices numériques deviennent donc :
+
+    \[
+    A =
+    \begin{bmatrix}
+    0 & 1 & 0 & 0 & 0 & 0 \\
+    0 & 0 & 0 & 0 & -1 & 0 \\
+    0 & 0 & 0 & 1 & 0 & 0 \\
+    0 & 0 & 0 & 0 & 0 & 0 \\
+    0 & 0 & 0 & 0 & 0 & 1 \\
+    0 & 0 & 0 & 0 & 0 & 0
+    \end{bmatrix},
+    \]
+
+    et :
+
+    \[
+    B =
+    \begin{bmatrix}
+    0 & 0 \\
+    0 & -1 \\
+    0 & 0 \\
+    1 & 0 \\
+    0 & 0 \\
+    0 & -3
+    \end{bmatrix}.
+    \]
+
+    La matrice \(A\) décrit l’évolution naturelle des erreurs d’état, tandis que la matrice \(B\) décrit l’effet des variations d’entrée \(\Delta f\) et \(\Delta \phi\) sur la dynamique du booster.
+
+    On remarque notamment que :
+    - \(\Delta f\) agit directement sur l’accélération verticale \(\Delta \dot{v}_y\) ;
+    - \(\Delta \phi\) agit sur l’accélération horizontale \(\Delta \dot{v}_x\) ;
+    - \(\Delta \phi\) agit aussi sur l’accélération angulaire \(\Delta \dot{\omega}\), ce qui traduit l’effet de rotation causé par une poussée désaxée.
+    """)
+    return
+
+
+@app.cell
+def _(J, M, g, l, np):
+    A = np.array([
+        [0.0, 1.0, 0.0, 0.0, 0.0, 0.0],
+        [0.0, 0.0, 0.0, 0.0, -g,  0.0],
+        [0.0, 0.0, 0.0, 1.0, 0.0, 0.0],
+        [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+        [0.0, 0.0, 0.0, 0.0, 0.0, 1.0],
+        [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+    ])
+
+    B = np.array([
+        [0.0, 0.0],
+        [0.0, -g],
+        [0.0, 0.0],
+        [1.0 / M, 0.0],
+        [0.0, 0.0],
+        [0.0, -M * g * l / (2.0 * J)],
+    ])
+
+
+
+    A, B
+    return (A,)
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
     ## 🧩 Stability
 
     Is the generic equilibrium asymptotically stable?
+    """)
+    return
+
+
+@app.cell
+def _(A, la):
+    eigenvalues = la.eigvals(A)
+    eigenvalues
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    ### Interprétation — Stabilité de l’équilibre
+
+    L’équilibre générique du booster n’est pas asymptotiquement stable.
+
+    En effet, les équilibres du système sont de la forme :
+
+    \[
+    s_e=(x_e,0,y_e,0,0,0),
+    \]
+
+    avec :
+
+    \[
+    f_e=Mg,
+    \qquad
+    \phi_e=0.
+    \]
+
+    Les positions \(x_e\) et \(y_e\) sont quelconques. Il existe donc une infinité d’équilibres, et non un équilibre isolé.
+    Ainsi, si on perturbe légèrement la position du booster, il n’y a pas de mécanisme naturel qui le ramène vers la position initiale.
+
+    Cette conclusion est confirmée par le modèle linéarisé. Les valeurs propres de la matrice \(A\) sont toutes nulles :
+
+    \[
+    \lambda_i = 0.
+    \]
+
+    Or, pour qu’un système linéaire soit asymptotiquement stable, toutes les valeurs propres de sa matrice dynamique doivent avoir une partie réelle strictement négative :
+
+    \[
+    \operatorname{Re}(\lambda_i)<0.
+    \]
+
+    Ici, les valeurs propres sont sur l’axe imaginaire, précisément en zéro.
+    Le système n’est donc pas asymptotiquement stable.
+
+    Physiquement, cela signifie que le booster peut rester en vol stationnaire s’il est exactement vertical, immobile et avec une poussée égale à son poids, mais il ne revient pas naturellement à cet état après une perturbation.
+    Il faudra donc concevoir un contrôleur pour stabiliser le système.
     """)
     return
 

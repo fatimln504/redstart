@@ -1087,10 +1087,218 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
+    ### Équilibres du système
+
+    On cherche les états pour lesquels le booster reste immobile lorsque les entrées \(f\) et \(\phi\) sont constantes.
+
+    L’état du système est :
+
+    \[
+    s = (x, v_x, y, v_y, \theta, \omega)
+    \]
+
+    À l’équilibre, on doit avoir :
+
+    \[
+    \dot{s}=0.
+    \]
+
+    Cela impose d’abord :
+
+    \[
+    v_x=0,\qquad v_y=0,\qquad \omega=0.
+    \]
+
+    Les accélérations doivent également être nulles :
+
+    \[
+    \ddot{x} = -\frac{f}{M}\sin(\theta+\phi)=0,
+    \]
+
+    \[
+    \ddot{y} = \frac{f}{M}\cos(\theta+\phi)-g=0,
+    \]
+
+    \[
+    \ddot{\theta} = -\frac{\ell}{2J}f\sin(\phi)=0.
+    \]
+
+    Comme \(f>0\) et \(|\phi|<\frac{\pi}{2}\), la dernière équation impose :
+
+    \[
+    \phi=0.
+    \]
+
+    Ensuite, comme \(|\theta|<\frac{\pi}{2}\), l’équation horizontale impose :
+
+    \[
+    \theta=0.
+    \]
+
+    Enfin, l’équation verticale donne :
+
+    \[
+    f = Mg.
+    \]
+
+    Les positions \(x\) et \(y\) peuvent être quelconques, car le modèle ne dépend pas de la position absolue du booster.
+
+    Ainsi, les équilibres possibles sont :
+
+    \[
+    s_e=(x_e,0,y_e,0,0,0),
+    \]
+
+    avec les entrées constantes associées :
+
+    \[
+    f_e=Mg,\qquad \phi_e=0.
+    \]
+    L’unique équilibre est :
+
+    \[
+    \theta = 0, \qquad \phi = 0, \qquad f = Mg
+    \]
+
+    avec \(x\) et \(y\) quelconques, et toutes les vitesses nulles .
+
+
+
+    Le booster flotte verticalement avec une poussée exactement égale au poids, ce qui correspond à un vol stationnaire.
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
     ## 🧩 Linearized Model
 
     Introduce the error variables $\Delta x$, $\Delta y$, $\Delta \theta$, and $\Delta f$ and $\Delta \phi$ of the state and input values with respect to the generic equilibrium configuration.
     What are the linear ordinary differential equations that govern (approximately) these variables in a neighbourhood of the equilibrium?
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    ### Modèle linéarisé autour de l’équilibre
+
+    On considère l’équilibre générique :
+
+    \[
+    s_e=(x_e,0,y_e,0,0,0),
+    \qquad
+    f_e=Mg,
+    \qquad
+    \phi_e=0.
+    \]
+
+    On introduit les variables d’erreur suivantes :
+
+    \[
+    \Delta x = x-x_e,
+    \qquad
+    \Delta v_x = v_x,
+    \]
+
+    \[
+    \Delta y = y-y_e,
+    \qquad
+    \Delta v_y = v_y,
+    \]
+
+    \[
+    \Delta \theta = \theta,
+    \qquad
+    \Delta \omega = \omega,
+    \]
+
+    et les erreurs d’entrée :
+
+    \[
+    \Delta f = f-Mg,
+    \qquad
+    \Delta \phi = \phi.
+    \]
+
+    Le modèle non linéaire est donné par :
+
+    \[
+    \ddot{x} = -\frac{f}{M}\sin(\theta+\phi),
+    \]
+
+    \[
+    \ddot{y} = \frac{f}{M}\cos(\theta+\phi)-g,
+    \]
+
+    \[
+    \ddot{\theta} = -\frac{\ell}{2J}f\sin(\phi).
+    \]
+
+    Au voisinage de l’équilibre, on utilise les approximations :
+
+    \[
+    \sin(\theta+\phi) \simeq \Delta\theta+\Delta\phi,
+    \qquad
+    \sin(\phi) \simeq \Delta\phi,
+    \qquad
+    \cos(\theta+\phi) \simeq 1.
+    \]
+
+    En négligeant les termes d’ordre supérieur, on obtient les équations linéarisées :
+
+    \[
+    \Delta \dot{x} = \Delta v_x,
+    \]
+
+    \[
+    \Delta \dot{v}_x = -g(\Delta\theta+\Delta\phi),
+    \]
+
+    \[
+    \Delta \dot{y} = \Delta v_y,
+    \]
+
+    \[
+    \Delta \dot{v}_y = \frac{1}{M}\Delta f,
+    \]
+
+    \[
+    \Delta \dot{\theta} = \Delta \omega,
+    \]
+
+    \[
+    \Delta \dot{\omega} = -\frac{\ell Mg}{2J}\Delta\phi.
+    \]
+
+    Comme pour une tige de longueur \(\ell\),
+
+    \[
+    J=\frac{1}{12}M\ell^2,
+    \]
+
+    on peut aussi écrire :
+
+    \[
+    \Delta \dot{\omega} = -\frac{6g}{\ell}\Delta\phi.
+    \]
+
+    Ainsi, le modèle linéarisé est :
+
+    \[
+    \boxed{
+    \begin{aligned}
+    \Delta \dot{x} &= \Delta v_x,\\
+    \Delta \dot{v}_x &= -g\Delta\theta - g\Delta\phi,\\
+    \Delta \dot{y} &= \Delta v_y,\\
+    \Delta \dot{v}_y &= \frac{1}{M}\Delta f,\\
+    \Delta \dot{\theta} &= \Delta \omega,\\
+    \Delta \dot{\omega} &= -\frac{6g}{\ell}\Delta\phi.
+    \end{aligned}
+    }
+    \]
     """)
     return
 

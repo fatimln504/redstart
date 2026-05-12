@@ -1621,9 +1621,11 @@ def _(A, la):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
+    ### Interprétation — Stabilité de l’équilibre
+
     L’équilibre générique du booster n’est pas asymptotiquement stable.
 
-    En effet, les équilibres du système sont de la forme :
+    Les équilibres du système sont de la forme :
 
     \[
     s_e=(x_e,0,y_e,0,0,0),
@@ -1637,26 +1639,109 @@ def _(mo):
     \phi_e=0.
     \]
 
-    Les positions \(x_e\) et \(y_e\) sont quelconques. Il existe donc une infinité d’équilibres, et non un équilibre isolé.
-    Ainsi, si on perturbe légèrement la position du booster, il n’y a pas de mécanisme naturel qui le ramène vers la position initiale.
+    Cela signifie que le booster est vertical, immobile, et que la poussée compense exactement son poids.
 
-    Cette conclusion est confirmée par le modèle linéarisé. Les valeurs propres de la matrice \(A\) sont toutes nulles :
+    Cependant, les positions \(x_e\) et \(y_e\) sont quelconques.
+    Il existe donc une famille d’équilibres, et non un équilibre isolé.
+
+    Ainsi, si on perturbe légèrement la position du booster, par exemple en passant de \(x_e\) à \(x_e+\varepsilon\), le système peut rester à cette nouvelle position sans revenir naturellement vers \(x_e\).
+    Cela suffit déjà à montrer que l’équilibre n’est pas attractif au sens d’un retour vers une position précise.
+
+    Cette conclusion est confirmée par le modèle linéarisé.
+    La matrice \(A\) du modèle linéarisé possède uniquement des valeurs propres nulles :
 
     \[
-    \lambda_i = 0.
+    \lambda_i=0.
     \]
 
-    Or, pour qu’un système linéaire soit asymptotiquement stable, toutes les valeurs propres de sa matrice dynamique doivent avoir une partie réelle strictement négative :
+    Or, pour qu’un système linéaire soit asymptotiquement stable, toutes les valeurs propres de la matrice dynamique doivent avoir une partie réelle strictement négative :
 
     \[
     \operatorname{Re}(\lambda_i)<0.
     \]
 
-    Ici, les valeurs propres sont sur l’axe imaginaire, précisément en zéro.
-    Le système n’est donc pas asymptotiquement stable.
+    Ici, les valeurs propres sont situées sur l’axe imaginaire, précisément en zéro.
+    Le critère d’asymptotic stability n’est donc pas vérifié.
 
-    Physiquement, cela signifie que le booster peut rester en vol stationnaire s’il est exactement vertical, immobile et avec une poussée égale à son poids, mais il ne revient pas naturellement à cet état après une perturbation.
-    Il faudra donc concevoir un contrôleur pour stabiliser le système.
+    Il faut toutefois préciser qu’une valeur propre nulle est un cas limite : elle ne suffit pas, à elle seule, à décrire complètement le comportement physique.
+    Elle peut correspondre à une simple absence de retour vers l’équilibre, mais aussi à une dérive non bornée selon la structure du système.
+
+    Dans le cas de notre booster, on peut voir directement la dérive à partir des équations linéarisées :
+
+    \[
+    \Delta\dot{x}=\Delta v_x,
+    \]
+
+    \[
+    \Delta\dot{v}_x=-g\Delta\theta-g\Delta\phi,
+    \]
+
+    \[
+    \Delta\dot{\theta}=\Delta\omega,
+    \]
+
+    \[
+    \Delta\dot{\omega}=0.
+    \]
+
+    Sans action de commande, on prend :
+
+    \[
+    \Delta\phi=0.
+    \]
+
+    Si le booster subit une petite perturbation d’inclinaison initiale :
+
+    \[
+    \Delta\theta(0)=\varepsilon,
+    \qquad
+    \Delta\omega(0)=0,
+    \]
+
+    alors :
+
+    \[
+    \Delta\omega(t)=0,
+    \]
+
+    donc :
+
+    \[
+    \Delta\theta(t)=\varepsilon.
+    \]
+
+    L’inclinaison ne se corrige pas naturellement.
+
+    L’équation horizontale devient alors :
+
+    \[
+    \Delta\ddot{x}(t)=-g\varepsilon.
+    \]
+
+    En intégrant deux fois, avec :
+
+    \[
+    \Delta x(0)=0,
+    \qquad
+    \Delta\dot{x}(0)=0,
+    \]
+
+    on obtient :
+
+    \[
+    \Delta x(t)=-\frac{1}{2}g\varepsilon t^2.
+    \]
+
+    Donc une petite inclinaison initiale produit une accélération latérale constante et une dérive parabolique de la position horizontale.
+    Le booster s’éloigne alors de sa position d’équilibre au lieu d’y revenir.
+
+    Physiquement, cela signifie que le booster peut rester en vol stationnaire uniquement s’il est exactement vertical, immobile, et avec une poussée égale à son poids.
+    Mais dès qu’il est légèrement incliné, la poussée n’est plus parfaitement verticale. Elle crée une composante latérale qui fait dériver le booster.
+
+    Ainsi, l’équilibre n’est pas asymptotiquement stable.
+    Il n’est même pas naturellement stabilisant vis-à-vis des perturbations d’inclinaison.
+
+    Il est donc nécessaire d’introduire un contrôleur actif en boucle fermée afin de corriger l’inclinaison, limiter la dérive latérale et ramener le booster vers l’équilibre souhaité.
     """)
     return
 
@@ -2816,7 +2901,7 @@ def _(A_lat, B_lat, la, np, plt, sci, scipy):
 
     pole_placement_fig, K_pp, eigvals_pp = run_pole_placement_controller()
     pole_placement_fig
-    return
+    return (K_pp,)
 
 
 @app.cell(hide_code=True)
@@ -3136,7 +3221,7 @@ def _(optimal_control_results):
     eigvals_oc_final = optimal_control_results[2]["eigvals_oc"]
 
     K_oc_final, eigvals_oc_final
-    return
+    return (K_oc_final,)
 
 
 @app.cell(hide_code=True)
@@ -3336,6 +3421,8 @@ def _(mo):
     - la dynamique en boucle fermée est asymptotiquement stable.
 
     Ainsi, le contrôleur optimal LQR permet de stabiliser le booster latéralement, tout en respectant les contraintes imposées sur l’angle du booster et l’angle de la tuyère.
+
+    Conclusion : Le LQR est supérieur ici car il exploite une information plus riche (les poids Q et R ont une signification physique directe) et produit automatiquement le meilleur gain possible pour le critère choisi. Le placement de pôles reste utile quand on a des spécifications fréquentielles précises à respecter.
     """)
     return
 
@@ -3346,6 +3433,408 @@ def _(mo):
     ## 🧩 Validation
 
     Test the two control strategies (pole placement and optimal control) on the "true" (nonlinear) model with an animation. Check that both controllers achieve their goal; otherwise, go back to the drawing board and tweak the design parameters until they do!
+    """)
+    return
+
+
+@app.cell
+def _(
+    K_oc_final,
+    K_pp,
+    M,
+    booster_anim,
+    g,
+    mo,
+    np,
+    plt,
+    redstart_solve,
+    world,
+):
+    def run_nonlinear_validation():
+        def simulate_nonlinear_controller(K_controller, name, T=30.0):
+            K_vector = np.asarray(K_controller).reshape(4)
+
+            t_span = [0.0, T]
+
+            y0 = [
+                0.0,        # x(0)
+                0.0,        # vx(0)
+                10.0,       # y(0)
+                0.0,        # vy(0)
+                np.pi / 4,  # theta(0)
+                0.0,        # omega(0)
+            ]
+
+            def f_phi(t, s):
+                x, vx, y, vy, theta, omega = s
+
+                lateral_state = np.array([
+                    x,
+                    vx,
+                    theta,
+                    omega,
+                ])
+
+                phi = -K_vector @ lateral_state
+                f = M * g
+
+                return np.array([f, phi])
+
+            sol = redstart_solve(t_span, y0, f_phi)
+
+            t_values = np.linspace(t_span[0], t_span[1], 3000)
+            s_values = sol(t_values)
+
+            x_values = s_values[0]
+            vx_values = s_values[1]
+            y_values = s_values[2]
+            theta_values = s_values[4]
+            omega_values = s_values[5]
+
+            phi_values = np.array([
+                f_phi(t_values[i], s_values[:, i])[1]
+                for i in range(len(t_values))
+            ])
+
+            idx_20 = np.argmin(np.abs(t_values - 20.0))
+
+            validation_results = {
+                "name": name,
+                "max_theta": np.max(np.abs(theta_values)),
+                "max_phi": np.max(np.abs(phi_values)),
+                "theta_20s": theta_values[idx_20],
+                "x_20s": x_values[idx_20],
+                "theta_final": theta_values[-1],
+                "x_final": x_values[-1],
+                "y_final": y_values[-1],
+                "constraints_ok": (
+                    np.max(np.abs(theta_values)) < np.pi / 2
+                    and np.max(np.abs(phi_values)) < np.pi / 2
+                ),
+            }
+
+            def x_anim(t):
+                return sol(t)[0]
+
+            def y_anim(t):
+                return sol(t)[2]
+
+            def theta_anim(t):
+                return sol(t)[4]
+
+            def f_anim(t):
+                return M * g
+
+            def phi_anim(t):
+                return f_phi(t, sol(t))[1]
+
+            animation = mo.Html(
+                world(
+                    [-6, 6, -2, 12],
+                    booster_anim(
+                        x_anim,
+                        y_anim,
+                        theta_anim,
+                        f_anim,
+                        phi_anim,
+                        T=T,
+                    )
+                )
+            )
+
+            return animation, validation_results, t_values, x_values, theta_values, phi_values
+
+        pp_animation, pp_results, pp_t, pp_x, pp_theta, pp_phi = simulate_nonlinear_controller(
+            K_pp,
+            "Pole placement",
+        )
+
+        oc_animation, oc_results, oc_t, oc_x, oc_theta, oc_phi = simulate_nonlinear_controller(
+            K_oc_final,
+            "Optimal control LQR",
+        )
+
+        fig_validation, ax_validation = plt.subplots(3, 1, figsize=(9, 9), sharex=True)
+
+        ax_validation[0].plot(pp_t, pp_theta, label="Pole placement")
+        ax_validation[0].plot(oc_t, oc_theta, label="Optimal control LQR")
+        ax_validation[0].axhline(0, color="black", ls=":")
+        ax_validation[0].axhline(np.pi / 2, color="grey", ls="--", label=r"$\pm \pi/2$")
+        ax_validation[0].axhline(-np.pi / 2, color="grey", ls="--")
+        ax_validation[0].set_ylabel(r"$\theta(t)$ (rad)")
+        ax_validation[0].set_title("Validation on the nonlinear model")
+        ax_validation[0].grid(True)
+        ax_validation[0].legend()
+
+        ax_validation[1].plot(pp_t, pp_phi, label="Pole placement")
+        ax_validation[1].plot(oc_t, oc_phi, label="Optimal control LQR")
+        ax_validation[1].axhline(0, color="black", ls=":")
+        ax_validation[1].axhline(np.pi / 2, color="grey", ls="--", label=r"$\pm \pi/2$")
+        ax_validation[1].axhline(-np.pi / 2, color="grey", ls="--")
+        ax_validation[1].set_ylabel(r"$\phi(t)$ (rad)")
+        ax_validation[1].grid(True)
+        ax_validation[1].legend()
+
+        ax_validation[2].plot(pp_t, pp_x, label="Pole placement")
+        ax_validation[2].plot(oc_t, oc_x, label="Optimal control LQR")
+        ax_validation[2].axhline(0, color="black", ls=":")
+        ax_validation[2].set_xlabel("time $t$ (s)")
+        ax_validation[2].set_ylabel(r"$x(t)$ (m)")
+        ax_validation[2].grid(True)
+        ax_validation[2].legend()
+
+        fig_validation.tight_layout()
+
+        print("Pole placement results:")
+        for key, value in pp_results.items():
+            print(key, "=", value)
+
+        print("-" * 50)
+
+        print("Optimal control LQR results:")
+        for key, value in oc_results.items():
+            print(key, "=", value)
+
+        animations = mo.vstack(
+            [
+                mo.md("### Validation sur le modèle non linéaire"),
+                mo.hstack(
+                    [
+                        mo.vstack([mo.md("#### Pole placement"), pp_animation]),
+                        mo.vstack([mo.md("#### Optimal control LQR"), oc_animation]),
+                    ],
+                    justify="space-around",
+                ),
+            ]
+        )
+
+        return animations, fig_validation, pp_results, oc_results
+
+
+    nonlinear_validation_animations, nonlinear_validation_fig, pp_nonlinear_results, oc_nonlinear_results = run_nonlinear_validation()
+
+    mo.vstack([
+        nonlinear_validation_animations,
+        nonlinear_validation_fig,
+    ])
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    ### 🧩 Validation sur le modèle non linéaire
+
+    Dans cette dernière étape, les deux contrôleurs conçus à partir du modèle linéarisé sont testés sur le modèle non linéaire complet du booster.
+
+    Les deux stratégies comparées sont :
+
+    - le contrôleur par placement de pôles ;
+    - le contrôleur optimal LQR.
+
+    ---
+
+    ### Pourquoi valider sur le modèle non linéaire ?
+
+    Jusqu’ici, la conception des contrôleurs a été faite à partir du modèle linéarisé.
+    Ce modèle est une approximation valable au voisinage de l’équilibre :
+
+    \[
+    \theta=0,\qquad \phi=0,\qquad f=Mg.
+    \]
+
+    Pour obtenir cette approximation, on a utilisé :
+
+    \[
+    \sin(\Delta\theta+\Delta\phi)
+    \simeq
+    \Delta\theta+\Delta\phi,
+    \]
+
+    \[
+    \cos(\Delta\theta+\Delta\phi)
+    \simeq
+    1,
+    \]
+
+    \[
+    \sin(\Delta\phi)
+    \simeq
+    \Delta\phi.
+    \]
+
+    Ces approximations sont correctes lorsque les angles sont petits.
+    Cependant, dans notre validation, la condition initiale est :
+
+    \[
+    \theta(0)=\frac{\pi}{4}=45^\circ.
+    \]
+
+    Cet angle n’est pas infinitésimal. Il est donc nécessaire de vérifier que les contrôleurs restent efficaces sur le modèle non linéaire, c’est-à-dire sur le modèle qui conserve les fonctions trigonométriques exactes.
+
+    Le modèle non linéaire utilisé dans la simulation est :
+
+    \[
+    M\ddot{x}=-f\sin(\theta+\phi),
+    \]
+
+    \[
+    M\ddot{y}=f\cos(\theta+\phi)-Mg,
+    \]
+
+    \[
+    J\ddot{\theta}
+    =
+    -f\frac{\ell}{2}\sin(\phi).
+    \]
+
+    L’objectif de cette validation est donc de vérifier que les deux contrôleurs ramènent bien :
+
+    \[
+    x(t)\to 0,
+    \qquad
+    \theta(t)\to 0,
+    \]
+
+    tout en respectant les contraintes :
+
+    \[
+    |\theta(t)|<\frac{\pi}{2},
+    \qquad
+    |\phi(t)|<\frac{\pi}{2}.
+    \]
+
+    ---
+
+    ### 1. Contrôleur par placement de pôles
+
+    Pour le contrôleur par placement de pôles, on obtient :
+
+    \[
+    \max |\theta(t)| = \frac{\pi}{4} < \frac{\pi}{2},
+    \]
+
+    et :
+
+    \[
+    \max |\phi(t)| \approx 0.408 \text{ rad} < \frac{\pi}{2}.
+    \]
+
+    Les contraintes sur l’inclinaison du booster et sur l’angle de la tuyère sont donc respectées.
+
+    À \(t=20\) s, on a :
+
+    \[
+    \theta(20) \approx 0.0031 \text{ rad},
+    \]
+
+    et :
+
+    \[
+    x(20) \approx -0.0042 \text{ m}.
+    \]
+
+    Ces valeurs sont très proches de zéro.
+    Le contrôleur par placement de pôles parvient donc bien à redresser le booster et à ramener sa position latérale vers l’équilibre.
+
+    À la fin de la simulation, on obtient :
+
+    \[
+    \theta_{\text{final}} \approx 8.8 \times 10^{-6} \text{ rad},
+    \]
+
+    et :
+
+    \[
+    x_{\text{final}} \approx -3.2 \times 10^{-4} \text{ m}.
+    \]
+
+    Le booster est donc pratiquement vertical et recentré latéralement.
+
+    ---
+
+    ### 2. Contrôleur optimal LQR
+
+    Pour le contrôleur optimal LQR, les contraintes sont également respectées :
+
+    \[
+    \max |\theta(t)| = \frac{\pi}{4} < \frac{\pi}{2},
+    \]
+
+    et :
+
+    \[
+    \max |\phi(t)| \approx 1.31 \text{ rad} < \frac{\pi}{2}.
+    \]
+
+    La commande LQR utilise une amplitude plus grande que le placement de pôles, mais elle reste admissible.
+
+    À \(t=20\) s, on obtient :
+
+    \[
+    \theta(20) \approx -4.6 \times 10^{-4} \text{ rad},
+    \]
+
+    et :
+
+    \[
+    x(20) \approx -7.3 \times 10^{-4} \text{ m}.
+    \]
+
+    Ces valeurs sont encore plus proches de zéro que celles du placement de pôles.
+    Le contrôleur LQR corrige donc plus rapidement l’inclinaison et la position latérale.
+
+    À la fin de la simulation, on obtient :
+
+    \[
+    \theta_{\text{final}} \approx 9.7 \times 10^{-6} \text{ rad},
+    \]
+
+    et :
+
+    \[
+    x_{\text{final}} \approx 2.8 \times 10^{-5} \text{ m}.
+    \]
+
+    Le booster est donc également stabilisé autour de l’équilibre latéral.
+
+    ---
+
+    ### 3. Comparaison des deux stratégies
+
+    Les deux contrôleurs atteignent l’objectif principal :
+
+    \[
+    \theta(t)\to 0,
+    \qquad
+    x(t)\to 0.
+    \]
+
+    Ils respectent aussi les contraintes imposées :
+
+    \[
+    |\theta(t)|<\frac{\pi}{2},
+    \qquad
+    |\phi(t)|<\frac{\pi}{2}.
+    \]
+
+    Le contrôleur par placement de pôles utilise une commande plus faible :
+
+    \[
+    \max |\phi(t)| \approx 0.408 \text{ rad}.
+    \]
+
+    Le contrôleur LQR utilise une commande plus importante :
+
+    \[
+    \max |\phi(t)| \approx 1.31 \text{ rad},
+    \]
+
+    mais il ramène \(x(t)\) et \(\theta(t)\) vers zéro plus rapidement.
+
+    On peut donc dire que le LQR est plus performant en termes de rapidité de convergence, tandis que le placement de pôles est plus modéré en effort de commande.
+
+    Ainsi, la validation sur le modèle non linéaire confirme que les deux stratégies de contrôle fonctionnent correctement pour stabiliser la position latérale et l’inclinaison du booster.
     """)
     return
 

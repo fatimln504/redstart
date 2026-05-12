@@ -2886,6 +2886,463 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
+    ### 🧩 Contrôleur par contrôle optimal — Principe
+
+    On cherche maintenant à construire un contrôleur à l’aide du contrôle optimal, plus précisément avec une approche de type LQR.
+
+    Le modèle latéral réduit s’écrit :
+
+    \[
+    \dot{X}_{\text{lat}} = A_{\text{lat}}X_{\text{lat}} + B_{\text{lat}}\Delta\phi,
+    \]
+
+    avec :
+
+    \[
+    X_{\text{lat}} =
+    \begin{bmatrix}
+    \Delta x \\
+    \Delta \dot{x} \\
+    \Delta \theta \\
+    \Delta \dot{\theta}
+    \end{bmatrix}.
+    \]
+
+    La loi de commande est encore un retour d’état :
+
+    \[
+    \Delta\phi(t)=-K_{oc}X_{\text{lat}}(t).
+    \]
+
+    En contrôle optimal, le gain \(K_{oc}\) n’est pas choisi directement.
+    On choisit plutôt deux matrices de pondération \(Q\) et \(R\), puis le gain est calculé automatiquement.
+
+    La matrice \(Q\) pénalise les erreurs d’état :
+
+    \[
+    X_{\text{lat}}^TQX_{\text{lat}},
+    \]
+
+    tandis que la matrice \(R\) pénalise l’amplitude de la commande :
+
+    \[
+    \Delta\phi(t)^TR\Delta\phi(t).
+    \]
+
+    Le critère à minimiser est donc :
+
+    \[
+    J =
+    \int_0^{+\infty}
+    \left(
+    X_{\text{lat}}(t)^T Q X_{\text{lat}}(t)
+    +
+    \Delta\phi(t)^T R \Delta\phi(t)
+    \right)dt.
+    \]
+
+    Le choix de \(Q\) et \(R\) traduit un compromis :
+    - si on augmente les coefficients de \(Q\), on demande au système de corriger plus fortement certaines erreurs d’état ;
+    - si on augmente \(R\), on pénalise davantage la commande, ce qui évite d’avoir une valeur trop grande de \(\Delta\phi(t)\).
+
+    Comme l’énoncé impose :
+
+    \[
+    |\Delta\phi(t)|<\frac{\pi}{2},
+    \]
+
+    il faut éviter une commande trop agressive.
+    On teste donc plusieurs choix de \(Q\) et \(R\), puis on garde un réglage qui assure :
+    - la convergence de \(\Delta\theta(t)\) vers zéro ;
+    - la convergence de \(\Delta x(t)\) vers zéro ;
+    - une convergence en moins de 20 secondes ;
+    - le respect de la contrainte sur \(\Delta\phi(t)\).
+    """)
+    return
+
+
+@app.cell
+def _(A_lat, B_lat, la, np, plt, sci, scipy):
+    def run_optimal_control_tests():
+        def lqr_gain_local(A, B, Q, R):
+            P = scipy.linalg.solve_continuous_are(A, B, Q, R)
+            K = np.linalg.solve(R, B.T @ P)
+            return K
+
+        def simulate_lqr_local(K_oc, t_final=30.0):
+            t_span = [0.0, t_final]
+
+            X0 = np.array([
+                0.0,        # Delta x(0)
+                0.0,        # Delta x_dot(0)
+                np.pi / 4,  # Delta theta(0)
+                0.0,        # Delta theta_dot(0)
+            ])
+
+            def closed_loop_dynamics(t, X):
+                delta_phi_value = -(K_oc @ X)[0]
+                return A_lat @ X + B_lat.flatten() * delta_phi_value
+
+            result = sci.solve_ivp(
+                closed_loop_dynamics,
+                t_span,
+                X0,
+                dense_output=True,
+                max_step=0.01,
+                rtol=1e-9,
+                atol=1e-9,
+            )
+
+            t_values = np.linspace(t_span[0], t_span[1], 3000)
+            X_values = result.sol(t_values)
+
+            delta_x_values = X_values[0]
+            delta_x_dot_values = X_values[1]
+            delta_theta_values = X_values[2]
+            delta_theta_dot_values = X_values[3]
+
+            delta_phi_values = np.array([
+                -(K_oc @ X_values[:, i])[0]
+                for i in range(X_values.shape[1])
+            ])
+
+            return (
+                t_values,
+                delta_x_values,
+                delta_x_dot_values,
+                delta_theta_values,
+                delta_theta_dot_values,
+                delta_phi_values,
+            )
+
+        test_parameters = [
+            {
+                "name": "Essai 1",
+                "Q": np.diag([0.25, 0.10, 1.62, 1.0]),
+                "R": np.array([[2.0]]),
+            },
+            {
+                "name": "Essai 2",
+                "Q": np.diag([0.25, 0.10, 1.62, 1.0]),
+                "R": np.array([[5.0]]),
+            },
+            {
+                "name": "Essai 3",
+                "Q": np.diag([0.50, 0.10, 8.00, 1.0]),
+                "R": np.array([[10.0]]),
+            },
+        ]
+
+        fig_oc, ax_oc = plt.subplots(3, 1, figsize=(9, 9), sharex=True)
+
+        oc_results = []
+
+        for test in test_parameters:
+            Q = test["Q"]
+            R = test["R"]
+
+            K_oc = lqr_gain_local(A_lat, B_lat, Q, R)
+
+            A_cl_oc = A_lat - B_lat @ K_oc
+            eigvals_oc = la.eigvals(A_cl_oc)
+
+            (
+                t_values,
+                delta_x_values,
+                delta_x_dot_values,
+                delta_theta_values,
+                delta_theta_dot_values,
+                delta_phi_values,
+            ) = simulate_lqr_local(K_oc)
+
+            max_theta = np.max(np.abs(delta_theta_values))
+            max_phi = np.max(np.abs(delta_phi_values))
+            theta_at_20s = delta_theta_values[np.argmin(np.abs(t_values - 20.0))]
+            x_at_20s = delta_x_values[np.argmin(np.abs(t_values - 20.0))]
+
+            constraints_ok = (max_theta < np.pi / 2) and (max_phi < np.pi / 2)
+            stable = np.all(np.real(eigvals_oc) < 0)
+
+            oc_results.append({
+                "name": test["name"],
+                "Q": Q,
+                "R": R,
+                "K_oc": K_oc,
+                "eigvals_oc": eigvals_oc,
+                "max_theta": max_theta,
+                "max_phi": max_phi,
+                "theta_at_20s": theta_at_20s,
+                "x_at_20s": x_at_20s,
+                "constraints_ok": constraints_ok,
+                "stable": stable,
+            })
+
+            label = test["name"]
+
+            ax_oc[0].plot(t_values, delta_theta_values, label=label)
+            ax_oc[1].plot(t_values, delta_phi_values, label=label)
+            ax_oc[2].plot(t_values, delta_x_values, label=label)
+
+        ax_oc[0].axhline(0, color="black", ls=":")
+        ax_oc[0].axhline(np.pi / 2, color="grey", ls="--", label=r"$\pm\pi/2$")
+        ax_oc[0].axhline(-np.pi / 2, color="grey", ls="--")
+        ax_oc[0].set_ylabel(r"$\Delta\theta(t)$ (rad)")
+        ax_oc[0].set_title("Essais du contrôleur optimal LQR")
+        ax_oc[0].grid(True)
+        ax_oc[0].legend()
+
+        ax_oc[1].axhline(0, color="black", ls=":")
+        ax_oc[1].axhline(np.pi / 2, color="grey", ls="--", label=r"$\pm\pi/2$")
+        ax_oc[1].axhline(-np.pi / 2, color="grey", ls="--")
+        ax_oc[1].set_ylabel(r"$\Delta\phi(t)$ (rad)")
+        ax_oc[1].grid(True)
+        ax_oc[1].legend()
+
+        ax_oc[2].axhline(0, color="black", ls=":")
+        ax_oc[2].set_xlabel("time $t$ (s)")
+        ax_oc[2].set_ylabel(r"$\Delta x(t)$ (m)")
+        ax_oc[2].grid(True)
+        ax_oc[2].legend()
+
+        fig_oc.tight_layout()
+
+        for res in oc_results:
+            print(res["name"])
+            print("Q =")
+            print(res["Q"])
+            print("R =")
+            print(res["R"])
+            print("K_oc =", res["K_oc"])
+            print("Closed-loop eigenvalues:", res["eigvals_oc"])
+            print("max |Delta theta| =", res["max_theta"])
+            print("max |Delta phi| =", res["max_phi"])
+            print("Delta theta at t=20s =", res["theta_at_20s"])
+            print("Delta x at t=20s =", res["x_at_20s"])
+            print("Constraints OK:", res["constraints_ok"])
+            print("Asymptotically stable:", res["stable"])
+            print("-" * 50)
+
+        return fig_oc, oc_results
+
+
+    optimal_control_fig, optimal_control_results = run_optimal_control_tests()
+    optimal_control_fig
+    return (optimal_control_results,)
+
+
+@app.cell
+def _(optimal_control_results):
+    K_oc_final = optimal_control_results[2]["K_oc"]
+    eigvals_oc_final = optimal_control_results[2]["eigvals_oc"]
+
+    K_oc_final, eigvals_oc_final
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    ### Interprétation
+
+    ### Essai 1
+
+    Pour le premier essai, on utilise :
+
+    \[
+    Q=\operatorname{diag}(0.25,\ 0.1,\ 1.62,\ 1),
+    \qquad
+    R=2.
+    \]
+
+    Le gain obtenu est :
+
+    \[
+    K_{oc}
+    =
+    \begin{bmatrix}
+    0.354 & 1.244 & -2.116 & -1.770
+    \end{bmatrix}.
+    \]
+
+    Les valeurs propres de la boucle fermée ont toutes une partie réelle négative :
+
+    \[
+    -1.57 \pm 0.48i,
+    \qquad
+    -0.46 \pm 0.42i.
+    \]
+
+    Le système est donc asymptotiquement stable.
+    Cependant, la commande maximale vaut :
+
+    \[
+    \max |\Delta\phi(t)| \approx 1.66 \text{ rad}.
+    \]
+
+    Or :
+
+    \[
+    \frac{\pi}{2}\approx 1.57 \text{ rad}.
+    \]
+
+    La contrainte sur la commande n’est donc pas respectée.
+    Cet essai est trop agressif : la commande corrige très rapidement le système, mais elle dépasse la limite autorisée.
+
+
+
+    ### Essai 2
+
+    Pour limiter la commande, on augmente \(R\) :
+
+    \[
+    Q=\operatorname{diag}(0.25,\ 0.1,\ 1.62,\ 1),
+    \qquad
+    R=5.
+    \]
+
+    Le gain devient :
+
+    \[
+    K_{oc}
+    =
+    \begin{bmatrix}
+    0.224 & 0.823 & -1.469 & -1.338
+    \end{bmatrix}.
+    \]
+
+    La commande maximale est maintenant :
+
+    \[
+    \max |\Delta\phi(t)| \approx 1.15 \text{ rad},
+    \]
+
+    ce qui respecte bien la contrainte :
+
+    \[
+    |\Delta\phi(t)|<\frac{\pi}{2}.
+    \]
+
+    Les valeurs propres ont toujours une partie réelle strictement négative :
+
+    \[
+    -1.13 \pm 0.63i,
+    \qquad
+    -0.47 \pm 0.43i.
+    \]
+
+    Le système reste donc asymptotiquement stable.
+    À \(t=20\) s, on obtient :
+
+    \[
+    \Delta\theta(20) \approx 6.5\times 10^{-5} \text{ rad},
+    \]
+
+    et :
+
+    \[
+    \Delta x(20) \approx -5.4\times 10^{-4} \text{ m}.
+    \]
+
+    Ces deux valeurs sont pratiquement nulles, donc l’objectif de convergence en moins de 20 s est atteint.
+
+
+
+    ### Essai 3
+
+    Dans le troisième essai, on augmente la pénalisation sur \(\Delta\theta\) :
+
+    \[
+    Q=\operatorname{diag}(0.5,\ 0.1,\ 8,\ 1),
+    \qquad
+    R=10.
+    \]
+
+    Le gain obtenu est :
+
+    \[
+    K_{oc}
+    =
+    \begin{bmatrix}
+    0.224 & 0.869 & -1.668 & -1.368
+    \end{bmatrix}.
+    \]
+
+    Ce choix pénalise davantage l’inclinaison du booster, tout en gardant un \(R\) suffisamment grand pour limiter la commande.
+
+    La commande maximale vaut :
+
+    \[
+    \max |\Delta\phi(t)| \approx 1.31 \text{ rad},
+    \]
+
+    ce qui reste inférieur à :
+
+    \[
+    \frac{\pi}{2}\approx 1.57 \text{ rad}.
+    \]
+
+    Les valeurs propres sont :
+
+    \[
+    -1.25 \pm 1.06i,
+    \qquad
+    -0.37 \pm 0.34i.
+    \]
+
+    Toutes leurs parties réelles sont négatives, donc le système est asymptotiquement stable.
+
+    À \(t=20\) s :
+
+    \[
+    \Delta\theta(20) \approx -5.7\times 10^{-4} \text{ rad},
+    \]
+
+    et :
+
+    \[
+    \Delta x(20) \approx -9.8\times 10^{-4} \text{ m}.
+    \]
+
+    Ces valeurs sont très proches de zéro.
+    Le système revient donc bien vers l’équilibre en moins de 20 secondes.
+
+
+
+    ### Choix retenu
+
+    L’essai 1 est rejeté parce que la commande dépasse la limite autorisée :
+
+    \[
+    \max|\Delta\phi(t)| > \frac{\pi}{2}.
+    \]
+
+    Les essais 2 et 3 respectent les contraintes et stabilisent le système.
+    On retient l’essai 3 car il pénalise davantage l’inclinaison \(\Delta\theta\), qui est une variable critique pour le redressement du booster, tout en gardant une commande admissible.
+
+    Le contrôleur retenu est donc :
+
+    \[
+    K_{oc}
+    =
+    \begin{bmatrix}
+    0.224 & 0.869 & -1.668 & -1.368
+    \end{bmatrix}.
+    \]
+
+    Les graphes confirment que :
+    - \(\Delta\theta(t)\) converge vers zéro ;
+    - \(\Delta x(t)\) converge vers zéro ;
+    - \(\Delta\phi(t)\) reste dans les limites autorisées ;
+    - la dynamique en boucle fermée est asymptotiquement stable.
+
+    Ainsi, le contrôleur optimal LQR permet de stabiliser le booster latéralement, tout en respectant les contraintes imposées sur l’angle du booster et l’angle de la tuyère.
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
     ## 🧩 Validation
 
     Test the two control strategies (pole placement and optimal control) on the "true" (nonlinear) model with an animation. Check that both controllers achieve their goal; otherwise, go back to the drawing board and tweak the design parameters until they do!

@@ -71,7 +71,7 @@ def _():
     import numpy as np
     import numpy.linalg as la
 
-    return la, np, plt, scipy
+    return la, np, plt, sci, scipy
 
 
 @app.cell(hide_code=True)
@@ -1621,8 +1621,6 @@ def _(A, la):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    ### Interprétation — Stabilité de l’équilibre
-
     L’équilibre générique du booster n’est pas asymptotiquement stable.
 
     En effet, les équilibres du système sont de la forme :
@@ -1687,14 +1685,12 @@ def _(A, B, np):
     rank_Kc = np.linalg.matrix_rank(Kc)
 
     Kc, rank_Kc
-    return
+    return (controllability_matrix,)
 
 
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    ### Interprétation — Commandabilité du modèle linéarisé
-
     La commandabilité signifie que l’on peut amener le système de n’importe quel état initial vers n’importe quel état cible en temps fini, en choisissant correctement la commande.
 
     Dans notre cas, le modèle linéarisé s’écrit sous la forme :
@@ -1785,6 +1781,146 @@ def _(mo):
     return
 
 
+@app.cell
+def _(J, M, g, l, np):
+    A_lat = np.array([
+        [0.0, 1.0, 0.0, 0.0],
+        [0.0, 0.0, -g,  0.0],
+        [0.0, 0.0, 0.0, 1.0],
+        [0.0, 0.0, 0.0, 0.0],
+    ])
+
+    B_lat = np.array([
+        [0.0],
+        [-g],
+        [0.0],
+        [-M * g * l / (2.0 * J)],
+    ])
+
+    A_lat, B_lat
+    return A_lat, B_lat
+
+
+@app.cell
+def _(A_lat, B_lat, controllability_matrix, np):
+    C_lat = controllability_matrix(A_lat, B_lat)
+    rank_C_lat = np.linalg.matrix_rank(C_lat)
+
+    C_lat, rank_C_lat
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    Dans cette partie, on se limite à la dynamique latérale du booster.
+    On ne contrôle plus directement la hauteur \(y\) ni la vitesse verticale \(\dot{y}\). On s’intéresse seulement à la position horizontale \(x\), à l’inclinaison \(\theta\), ainsi qu’à leurs dérivées.
+
+    Le vecteur d’état réduit est donc :
+
+    \[
+    X_{\text{lat}} =
+    \begin{bmatrix}
+    \Delta x \\
+    \Delta v_x \\
+    \Delta \theta \\
+    \Delta \omega
+    \end{bmatrix}.
+    \]
+
+    On impose également :
+
+    \[
+    f=Mg,
+    \]
+
+    ce qui signifie que la poussée compense le poids.
+    La seule commande restante est alors l’angle de la tuyère :
+
+    \[
+    U_{\text{lat}}=\Delta\phi.
+    \]
+
+    Le modèle réduit s’écrit sous la forme :
+
+    \[
+    \dot{X}_{\text{lat}} = A_{\text{lat}}X_{\text{lat}} + B_{\text{lat}}U_{\text{lat}}.
+    \]
+
+    Les matrices obtenues sont :
+
+    \[
+    A_{\text{lat}} =
+    \begin{bmatrix}
+    0 & 1 & 0 & 0 \\
+    0 & 0 & -g & 0 \\
+    0 & 0 & 0 & 1 \\
+    0 & 0 & 0 & 0
+    \end{bmatrix},
+    \]
+
+    \[
+    B_{\text{lat}} =
+    \begin{bmatrix}
+    0 \\
+    -g \\
+    0 \\
+    -\frac{Mg\ell}{2J}
+    \end{bmatrix}.
+    \]
+
+    Avec les constantes du projet, on obtient :
+
+    \[
+    A_{\text{lat}} =
+    \begin{bmatrix}
+    0 & 1 & 0 & 0 \\
+    0 & 0 & -1 & 0 \\
+    0 & 0 & 0 & 1 \\
+    0 & 0 & 0 & 0
+    \end{bmatrix},
+    \qquad
+    B_{\text{lat}} =
+    \begin{bmatrix}
+    0 \\
+    -1 \\
+    0 \\
+    -3
+    \end{bmatrix}.
+    \]
+
+    Pour vérifier la commandabilité, on utilise le critère de Kalman.
+    La matrice de commandabilité est :
+
+    \[
+    \mathcal{C}_{\text{lat}} =
+    \begin{bmatrix}
+    B_{\text{lat}} &
+    A_{\text{lat}}B_{\text{lat}} &
+    A_{\text{lat}}^2B_{\text{lat}} &
+    A_{\text{lat}}^3B_{\text{lat}}
+    \end{bmatrix}.
+    \]
+
+    Comme l’état réduit est de dimension \(4\), le système est commandable si :
+
+    \[
+    \operatorname{rank}(\mathcal{C}_{\text{lat}})=4.
+    \]
+
+    Le calcul numérique donne bien :
+
+    \[
+    \operatorname{rank}(\mathcal{C}_{\text{lat}})=4.
+    \]
+
+    Le système latéral réduit est donc commandable.
+
+    Cela signifie qu’en agissant uniquement sur l’angle de tuyère \(\phi\), on peut contrôler la position latérale \(x\), la vitesse latérale \(v_x\), l’angle \(\theta\) et la vitesse angulaire \(\omega\), au moins au voisinage de l’équilibre.
+    """)
+    return
+
+
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
@@ -1795,6 +1931,240 @@ def _(mo):
     - $\phi(t)=0$ at all times.
 
     What do you see? How do you explain it?
+    """)
+    return
+
+
+@app.cell
+def _(A_lat, B_lat, np, plt, sci):
+    def linear_lateral_free_fall():
+        t_span = [0.0, 5.0]
+
+        X0 = np.array([
+            0.0,        # x(0) in m
+            0.0,        # vx(0) in m/s
+            np.pi / 4,  # theta(0) in rad
+            0.0,        # omega(0) in rad/s
+        ])
+
+        def dynamics(t, X):
+            U = np.array([0.0])  # phi(t) = 0
+            return A_lat @ X + B_lat @ U
+
+        result = sci.solve_ivp(
+            dynamics,
+            t_span,
+            X0,
+            dense_output=True,
+            max_step=0.01,
+            rtol=1e-9,
+            atol=1e-9,
+        )
+
+        t = np.linspace(t_span[0], t_span[1], 1000)
+        X_t = result.sol(t)
+
+        x_t = X_t[0]
+        theta_t = X_t[2]
+
+        fig, ax = plt.subplots(2, 1, figsize=(8, 6))
+
+        # x(t)
+        ax[0].plot(t, x_t, label=r"$x(t)$")
+        ax[0].axhline(0, color="grey", ls="--")
+        ax[0].set_xlabel("time $t$ (s)")
+        ax[0].set_ylabel(r"$x(t)$ (m)")
+        ax[0].set_title("Lateral position")
+        ax[0].grid(True)
+        ax[0].legend()
+
+        # theta(t)
+        ax[1].plot(t, theta_t, label=r"$\theta(t)$")
+        ax[1].axhline(np.pi / 4, color="grey", ls="--", label=r"$\pi/4$")
+        ax[1].set_xlabel("time $t$ (s)")
+        ax[1].set_ylabel(r"$\theta(t)$ (rad)")
+        ax[1].set_title("Tilt angle")
+        ax[1].grid(True)
+        ax[1].legend()
+
+        fig.suptitle(r"Linearized lateral model with $\phi(t)=0$", fontsize=14)
+        fig.tight_layout()
+
+        return fig
+
+    linear_lateral_free_fall()
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    On considère le modèle latéral linéarisé réduit :
+
+    \[
+    X_{\text{lat}} =
+    \begin{bmatrix}
+    \Delta x \\
+    \Delta v_x \\
+    \Delta \theta \\
+    \Delta \omega
+    \end{bmatrix},
+    \qquad
+    \dot{X}_{\text{lat}} = A_{\text{lat}}X_{\text{lat}} + B_{\text{lat}}\Delta\phi.
+    \]
+
+    Dans ce scénario, on impose :
+
+    \[
+    \phi(t)=0,
+    \]
+
+    donc :
+
+    \[
+    \Delta\phi(t)=0.
+    \]
+
+    Le système évolue alors librement selon :
+
+    \[
+    \dot{X}_{\text{lat}} = A_{\text{lat}}X_{\text{lat}}.
+    \]
+
+    Avec les équations du modèle réduit, on obtient :
+
+    \[
+    \dot{x}=v_x,
+    \]
+
+    \[
+    \dot{v}_x=-g\theta,
+    \]
+
+    \[
+    \dot{\theta}=\omega,
+    \]
+
+    \[
+    \dot{\omega}=0.
+    \]
+
+    Les conditions initiales sont :
+
+    \[
+    x(0)=0,\qquad v_x(0)=0,
+    \]
+
+    \[
+    \theta(0)=\frac{\pi}{4},\qquad \omega(0)=0.
+    \]
+
+    Comme :
+
+    \[
+    \dot{\omega}=0
+    \]
+
+    et que :
+
+    \[
+    \omega(0)=0,
+    \]
+
+    on obtient :
+
+    \[
+    \omega(t)=0.
+    \]
+
+    Donc :
+
+    \[
+    \dot{\theta}(t)=0.
+    \]
+
+    Ainsi, l’angle reste constant :
+
+    \[
+    \theta(t)=\frac{\pi}{4}.
+    \]
+
+    Ensuite, l’accélération latérale est donnée par :
+
+    \[
+    \ddot{x}(t)=\dot{v}_x(t)=-g\theta(t).
+    \]
+
+    Comme \(\theta(t)=\frac{\pi}{4}\), on a :
+
+    \[
+    \ddot{x}(t)=-g\frac{\pi}{4}.
+    \]
+
+    Avec \(g=1\), cela devient :
+
+    \[
+    \ddot{x}(t)=-\frac{\pi}{4}.
+    \]
+
+    En intégrant une première fois :
+
+    \[
+    \dot{x}(t)=v_x(t)=-\frac{\pi}{4}t+v_x(0).
+    \]
+
+    Comme \(v_x(0)=0\), on obtient :
+
+    \[
+    v_x(t)=-\frac{\pi}{4}t.
+    \]
+
+    En intégrant une deuxième fois :
+
+    \[
+    x(t)=-\frac{1}{2}\frac{\pi}{4}t^2+x(0).
+    \]
+
+    Comme \(x(0)=0\), la solution analytique est :
+
+    \[
+    x(t)=-\frac{\pi}{8}t^2.
+    \]
+
+    Ainsi, les courbes obtenues sont cohérentes avec les solutions analytiques :
+
+    \[
+    \boxed{\theta(t)=\frac{\pi}{4}}
+    \]
+
+    et :
+
+    \[
+    \boxed{x(t)=-\frac{\pi}{8}t^2}.
+    \]
+
+    Sur le graphique, on observe donc que :
+
+    - \(\Delta\theta(t)\) reste constant à \(\pi/4\), c’est-à-dire à \(45^\circ\).
+      L’inclinaison initiale ne change donc pas au cours du temps.
+
+    - \(\Delta x(t)\) suit une trajectoire parabolique.
+      Cela signifie que le booster subit une accélération latérale constante.
+
+    Physiquement, cela s’explique par l’absence de commande sur \(\phi\).
+    Comme \(\phi(t)=0\), aucun couple n’est généré pour ramener le booster à la verticale. L’angle \(\theta\) reste donc bloqué à sa valeur initiale.
+
+    Cependant, comme le booster est incliné, la poussée alignée avec son axe n’est plus parfaitement verticale. Elle possède une composante horizontale permanente, ce qui entraîne une dérive latérale continue du centre de masse.
+
+    À \(t=5\), on obtient :
+
+    \[
+    x(5)=-\frac{\pi}{8}\times 25 \approx -9.82\ \text{m}.
+    \]
+
+    Cette valeur correspond bien à la courbe numérique obtenue.
+
+    Ce comportement montre que, sans contrôleur, le booster ne corrige pas naturellement son inclinaison initiale. C’est précisément cette dérive et cette absence de correction que l’on cherchera à compenser avec une loi de commande.
     """)
     return
 

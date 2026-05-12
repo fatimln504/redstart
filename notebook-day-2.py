@@ -2213,6 +2213,392 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
+    ### 🧩 Contrôleur réglé manuellement — Analyse théorique
+
+    On cherche à stabiliser l’inclinaison du booster à l’aide d’un contrôleur réglé manuellement.
+
+    On travaille avec le modèle latéral réduit :
+
+    \[
+    X_{\text{lat}} =
+    \begin{bmatrix}
+    \Delta x \\
+    \Delta \dot{x} \\
+    \Delta \theta \\
+    \Delta \dot{\theta}
+    \end{bmatrix}
+    \]
+
+    et la seule commande disponible est l’angle de la tuyère :
+
+    \[
+    \Delta \phi.
+    \]
+
+    L’énoncé impose une matrice de gain de la forme :
+
+    \[
+    K =
+    \begin{bmatrix}
+    0 & 0 & k_3 & k_4
+    \end{bmatrix}.
+    \]
+
+    Les deux premiers coefficients sont nuls, car on ne cherche pas encore à contrôler la position latérale \(\Delta x\).
+    On cherche uniquement à corriger l’inclinaison \(\Delta \theta\) et la vitesse angulaire \(\Delta \dot{\theta}\).
+
+    La loi de commande est donc :
+
+    \[
+    \Delta \phi(t)
+    =
+    -KX_{\text{lat}}(t).
+    \]
+
+    C’est-à-dire :
+
+    \[
+    \Delta \phi(t)
+    =
+    -k_3\Delta\theta(t)
+    -
+    k_4\Delta\dot{\theta}(t).
+    \]
+
+    Dans le modèle linéarisé, la dynamique angulaire est donnée par :
+
+    \[
+    \Delta \ddot{\theta}
+    =
+    -\frac{Mg\ell}{2J}\Delta\phi.
+    \]
+
+    On pose :
+
+    \[
+    c=\frac{Mg\ell}{2J}.
+    \]
+
+    Avec les valeurs du projet :
+
+    \[
+    M=1,\qquad g=1,\qquad \ell=2,\qquad J=\frac{1}{3},
+    \]
+
+    on obtient :
+
+    \[
+    c=3.
+    \]
+
+    En remplaçant la loi de commande dans l’équation angulaire :
+
+    \[
+    \Delta \ddot{\theta}
+    =
+    -c\Delta\phi,
+    \]
+
+    on obtient :
+
+    \[
+    \Delta \ddot{\theta}
+    =
+    c k_3\Delta\theta
+    +
+    c k_4\Delta\dot{\theta}.
+    \]
+
+    Le sous-système angulaire en boucle fermée est donc :
+
+    \[
+    \frac{d}{dt}
+    \begin{bmatrix}
+    \Delta\theta \\
+    \Delta\dot{\theta}
+    \end{bmatrix}
+    =
+    \begin{bmatrix}
+    0 & 1 \\
+    c k_3 & c k_4
+    \end{bmatrix}
+    \begin{bmatrix}
+    \Delta\theta \\
+    \Delta\dot{\theta}
+    \end{bmatrix}.
+    \]
+
+    Son équation caractéristique est :
+
+    \[
+    \lambda^2 - c k_4 \lambda - c k_3 = 0.
+    \]
+
+    Pour que l’inclinaison converge vers zéro, les deux racines de cette équation doivent avoir une partie réelle négative.
+
+    En comparant avec :
+
+    \[
+    (\lambda-\lambda_1)(\lambda-\lambda_2)
+    =
+    \lambda^2-(\lambda_1+\lambda_2)\lambda+\lambda_1\lambda_2,
+    \]
+
+    on obtient :
+
+    \[
+    \lambda_1+\lambda_2 = c k_4,
+    \]
+
+    et :
+
+    \[
+    \lambda_1\lambda_2 = -c k_3.
+    \]
+
+    Pour avoir deux racines avec une partie réelle négative, il faut que leur somme soit négative et que leur produit soit positif :
+
+    \[
+    \lambda_1+\lambda_2 = c k_4 < 0,
+    \]
+
+    donc, comme \(c>0\) :
+
+    \[
+    k_4<0.
+    \]
+
+    De même :
+
+    \[
+    \lambda_1\lambda_2 = -c k_3 > 0,
+    \]
+
+    donc, comme \(c>0\) :
+
+    \[
+    k_3<0.
+    \]
+
+    Ainsi, les deux coefficients \(k_3\) et \(k_4\) doivent être négatifs.
+
+    Le coefficient \(k_3\) agit principalement comme une correction de position angulaire, tandis que \(k_4\) joue un rôle d’amortissement lié à la vitesse angulaire.
+    """)
+    return
+
+
+@app.cell
+def _(A_lat, B_lat, la, np, plt, sci):
+    def simulate_manual_controller(K_manual, t_final=30.0):
+        t_span = [0.0, t_final]
+
+        X0 = np.array([
+            0.0,        # Delta x(0)
+            0.0,        # Delta x_dot(0)
+            np.pi / 4,  # Delta theta(0)
+            0.0,        # Delta theta_dot(0)
+        ])
+
+        def closed_loop_dynamics(t, X):
+            delta_phi = -K_manual @ X
+            return A_lat @ X + B_lat.flatten() * delta_phi
+
+        result = sci.solve_ivp(
+            closed_loop_dynamics,
+            t_span,
+            X0,
+            dense_output=True,
+            max_step=0.01,
+            rtol=1e-9,
+            atol=1e-9,
+        )
+
+        t = np.linspace(t_span[0], t_span[1], 2000)
+        X_t = result.sol(t)
+
+        delta_x = X_t[0]
+        delta_x_dot = X_t[1]
+        delta_theta = X_t[2]
+        delta_theta_dot = X_t[3]
+
+        delta_phi = np.array([
+            -K_manual @ X_t[:, i]
+            for i in range(X_t.shape[1])
+        ])
+
+        return t, delta_x, delta_x_dot, delta_theta, delta_theta_dot, delta_phi
+
+
+    K_tests = [
+        np.array([0.0, 0.0, -0.03, -0.15]),
+        np.array([0.0, 0.0, -0.05, -0.25]),
+        np.array([0.0, 0.0, -0.07, -0.30]),
+    ]
+
+    fig, ax = plt.subplots(3, 1, figsize=(9, 9), sharex=True)
+
+    results_manual = []
+
+    for K_manual in K_tests:
+        t, delta_x, delta_x_dot, delta_theta, delta_theta_dot, delta_phi = simulate_manual_controller(K_manual)
+
+        A_cl_test = A_lat - B_lat @ K_manual.reshape(1, 4)
+        eigvals_test = la.eigvals(A_cl_test)
+
+        max_theta = np.max(np.abs(delta_theta))
+        max_phi = np.max(np.abs(delta_phi))
+        theta_at_20s = delta_theta[np.argmin(np.abs(t - 20.0))]
+
+        constraints_ok = (max_theta < np.pi / 2) and (max_phi < np.pi / 2)
+
+        results_manual.append({
+            "K": K_manual,
+            "max_theta": max_theta,
+            "max_phi": max_phi,
+            "theta_at_20s": theta_at_20s,
+            "constraints_ok": constraints_ok,
+            "eigvals_test": eigvals_test,
+        })
+
+        label = rf"$k_3={K_manual[2]:.2f},\ k_4={K_manual[3]:.2f}$"
+
+        ax[0].plot(t, delta_theta, label=label)
+        ax[1].plot(t, delta_phi, label=label)
+        ax[2].plot(t, delta_x, label=label)
+
+
+    ax[0].axhline(0, color="black", ls=":")
+    ax[0].axhline(np.pi / 2, color="grey", ls="--", label=r"$\pm \pi/2$")
+    ax[0].axhline(-np.pi / 2, color="grey", ls="--")
+    ax[0].set_ylabel(r"$\Delta\theta(t)$ (rad)")
+    ax[0].set_title("Essais manuels du contrôleur")
+    ax[0].grid(True)
+    ax[0].legend()
+
+    ax[1].axhline(0, color="black", ls=":")
+    ax[1].axhline(np.pi / 2, color="grey", ls="--", label=r"$\pm \pi/2$")
+    ax[1].axhline(-np.pi / 2, color="grey", ls="--")
+    ax[1].set_ylabel(r"$\Delta\phi(t)$ (rad)")
+    ax[1].grid(True)
+    ax[1].legend()
+
+    ax[2].axhline(0, color="black", ls=":")
+    ax[2].set_xlabel("time $t$ (s)")
+    ax[2].set_ylabel(r"$\Delta x(t)$ (m)")
+    ax[2].grid(True)
+    ax[2].legend()
+
+    fig.tight_layout()
+
+    for i, res in enumerate(results_manual, start=1):
+        print(f"Essai {i}")
+        print("K =", res["K"])
+        print("max |Delta theta| =", res["max_theta"])
+        print("max |Delta phi| =", res["max_phi"])
+        print("Delta theta at t=20s =", res["theta_at_20s"])
+        print("Constraints OK:", res["constraints_ok"])
+        print("Eigenvalues:", res["eigvals_test"])
+        print("-" * 50)
+
+    fig
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    ### Interprétation des essais manuels
+
+    Les coefficients \(k_3\) et \(k_4\) sont choisis par réglage manuel progressif.
+    L’analyse théorique montre qu’ils doivent être négatifs pour stabiliser le sous-système angulaire, mais elle ne donne pas directement les meilleures valeurs numériques.
+
+    Nous testons donc plusieurs paires de gains négatifs afin de comparer :
+    - la vitesse de convergence de \(\Delta\theta(t)\) vers zéro ;
+    - le respect de la contrainte \(|\Delta\theta(t)|<\pi/2\) ;
+    - le respect de la contrainte \(|\Delta\phi(t)|<\pi/2\) ;
+    - le comportement de la position latérale \(\Delta x(t)\), même si elle n’est pas l’objectif principal ici.
+
+    Les trois essais donnent des commandes admissibles, car dans tous les cas :
+
+    \[
+    \max|\Delta\theta(t)| < \frac{\pi}{2},
+    \qquad
+    \max|\Delta\phi(t)| < \frac{\pi}{2}.
+    \]
+
+    L’essai 1, avec :
+
+    \[
+    K=[0,0,-0.03,-0.15],
+    \]
+
+    stabilise l’angle, mais la convergence est plus lente. À \(t=20\) s, il reste encore :
+
+    \[
+    \Delta\theta(20)\approx -0.013 \text{ rad}.
+    \]
+
+    L’essai 2, avec :
+
+    \[
+    K=[0,0,-0.05,-0.25],
+    \]
+
+    donne une convergence plus rapide :
+
+    \[
+    \Delta\theta(20)\approx 0.0014 \text{ rad}.
+    \]
+
+    L’essai 3, avec :
+
+    \[
+    K=[0,0,-0.07,-0.30],
+    \]
+
+    donne la meilleure convergence parmi les trois essais :
+
+    \[
+    \Delta\theta(20)\approx 0.00048 \text{ rad}.
+    \]
+
+    La commande reste également très faible devant la limite imposée :
+
+    \[
+    \max|\Delta\phi(t)|\approx 0.055 \text{ rad} \ll \frac{\pi}{2}.
+    \]
+
+    On retient donc le troisième choix :
+
+    \[
+    K_{\text{manual}}=[0,0,-0.07,-0.30].
+    \]
+
+    Ce choix permet de redresser le booster en moins de 20 secondes tout en respectant les contraintes de l’énoncé.
+
+    Cependant, on observe aussi que \(\Delta x(t)\) continue à dériver. Cela est normal, car les deux premiers coefficients de \(K\) sont nuls : le contrôleur agit uniquement sur l’angle \(\Delta\theta\) et la vitesse angulaire \(\Delta\dot{\theta}\), mais ne cherche pas encore à ramener le booster vers une position latérale donnée.
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    ### résultat retenu ###
+    """)
+    return
+
+
+@app.cell
+def _(np):
+    K_manual_final = np.array([0.0, 0.0, -0.07, -0.30])
+    K_manual_final
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
     ## 🧩 Controller Tuned with Pole Assignment
 
     Using pole assignement, find a matrix

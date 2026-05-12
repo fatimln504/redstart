@@ -1598,7 +1598,7 @@ def _(J, M, g, l, np):
 
 
     A, B
-    return (A,)
+    return A, B
 
 
 @app.cell(hide_code=True)
@@ -1669,6 +1669,104 @@ def _(mo):
     ## 🧩 Controllability
 
     Is the linearized model controllable?
+    """)
+    return
+
+
+@app.cell
+def _(A, B, np):
+    def controllability_matrix(A, B):
+        n = A.shape[0]
+        return np.column_stack([
+            np.linalg.matrix_power(A, k) @ B
+            for k in range(n)
+        ])
+
+
+    Kc = controllability_matrix(A, B)
+    rank_Kc = np.linalg.matrix_rank(Kc)
+
+    Kc, rank_Kc
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    ### Interprétation — Commandabilité du modèle linéarisé
+
+    La commandabilité signifie que l’on peut amener le système de n’importe quel état initial vers n’importe quel état cible en temps fini, en choisissant correctement la commande.
+
+    Dans notre cas, le modèle linéarisé s’écrit sous la forme :
+
+    \[
+    \dot{X}=AX+BU,
+    \]
+
+    où :
+
+    \[
+    X =
+    \begin{bmatrix}
+    \Delta x \\
+    \Delta v_x \\
+    \Delta y \\
+    \Delta v_y \\
+    \Delta \theta \\
+    \Delta \omega
+    \end{bmatrix}
+    \]
+
+    est le vecteur d’état d’erreur, et :
+
+    \[
+    U =
+    \begin{bmatrix}
+    \Delta f \\
+    \Delta \phi
+    \end{bmatrix}
+    \]
+
+    est le vecteur de commande d’erreur.
+
+    Pour tester la commandabilité, on utilise le critère de Kalman.
+    D’après ce critère, le système est commandable si et seulement si la matrice de commandabilité :
+
+    \[
+    \mathcal{C}
+    =
+    \begin{bmatrix}
+    B & AB & A^2B & A^3B & A^4B & A^5B
+    \end{bmatrix}
+    \]
+
+    est de rang plein.
+
+    Comme notre état est de dimension \(6\), la condition à vérifier est :
+
+    \[
+    \operatorname{rank}(\mathcal{C}) = 6.
+    \]
+
+    Ici, la matrice \(B\) est de taille \(6\times 2\).
+    Ainsi, chaque bloc \(A^kB\) est aussi de taille \(6\times 2\), et la matrice de commandabilité complète est de taille :
+
+    \[
+    \mathcal{C}\in\mathbb{R}^{6\times 12}.
+    \]
+
+    Après calcul numérique, on obtient :
+
+    \[
+    \operatorname{rank}(\mathcal{C})=6.
+    \]
+
+    Le modèle linéarisé est donc commandable.
+
+    Physiquement, cela signifie qu’au voisinage de l’équilibre, les deux commandes disponibles permettent d’agir sur tous les degrés de liberté du booster.
+    La variation de poussée \(\Delta f\) agit principalement sur le mouvement vertical, tandis que la variation d’angle de tuyère \(\Delta \phi\) influence à la fois le mouvement horizontal et la rotation.
+
+    Ainsi, même si l’équilibre n’est pas naturellement stable, il est théoriquement possible de concevoir une commande capable de ramener le booster vers l’état désiré.
     """)
     return
 

@@ -2194,7 +2194,7 @@ def _(mo):
     Let
     $$
     R(\alpha) =
-    \begin{bmatrix} +\cos \alpha & -\sin \alpha \\ +\sin \alpha & -\cos \alpha
+    \begin{bmatrix} +\cos \alpha & -\sin \alpha \\ +\sin \alpha & +\cos \alpha
     \end{bmatrix}
     $$
 
@@ -2676,6 +2676,126 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
+    On part des expressions :
+
+    \[
+    \ddot{h}
+    =
+    \begin{bmatrix}
+    \dfrac{z}{M}\sin\theta\\[4pt]
+    -\dfrac{z}{M}\cos\theta-g
+    \end{bmatrix}.
+    \]
+
+    On pose :
+
+    \[
+    a_x=\ddot{h}_x,
+    \qquad
+    a_y=\ddot{h}_y+g.
+    \]
+
+    Alors :
+
+    \[
+    \begin{bmatrix}
+    a_x\\
+    a_y
+    \end{bmatrix}
+    =
+    \frac{z}{M}
+    \begin{bmatrix}
+    \sin\theta\\
+    -\cos\theta
+    \end{bmatrix}.
+    \]
+
+    Comme on suppose \(z<0\), on peut retrouver \(z\) de manière unique :
+
+    \[
+    z=-M\sqrt{a_x^2+a_y^2}.
+    \]
+
+    Puis :
+
+    \[
+    \sin\theta=-\frac{a_x}{\sqrt{a_x^2+a_y^2}},
+    \qquad
+    \cos\theta=\frac{a_y}{\sqrt{a_x^2+a_y^2}}.
+    \]
+
+    Donc :
+
+    \[
+    \theta=\operatorname{atan2}\left(
+    -\ddot{h}_x,
+    \ddot{h}_y+g
+    \right).
+    \]
+
+    Ensuite, à partir de :
+
+    \[
+    h^{(3)}
+    =
+    \frac{1}{M}
+    \begin{bmatrix}
+    \dot{z}\sin\theta+z\dot{\theta}\cos\theta\\[4pt]
+    -\dot{z}\cos\theta+z\dot{\theta}\sin\theta
+    \end{bmatrix},
+    \]
+
+    on retrouve \(\dot{z}\) et \(\dot{\theta}\) par projection sur les directions du booster.
+
+    Enfin, on utilise les formules de \(h\) et \(\dot h\) pour retrouver \(x,y,\dot{x},\dot{y}\).
+    """)
+    return
+
+
+@app.cell
+def _(M, g, l, np):
+    def T_inv(hx, hy, dhx, dhy, d2hx, d2hy, d3hx, d3hy):
+        ax = d2hx
+        ay = d2hy + g
+
+        rho = np.sqrt(ax**2 + ay**2)
+
+        if rho == 0:
+            raise ValueError("Inversion impossible: z = 0.")
+
+        # Since z < 0
+        z = -M * rho
+
+        sin_theta = -ax / rho
+        cos_theta = ay / rho
+
+        theta = np.arctan2(sin_theta, cos_theta)
+
+        # Recover dz and dtheta from h^(3)
+        b = M * np.array([d3hx, d3hy])
+
+        w = np.array([sin_theta, -cos_theta])
+        n = np.array([cos_theta, sin_theta])
+
+        dz = b @ w
+        dtheta = (b @ n) / z
+
+        # Recover x and y from h
+        x = hx + (l / 6) * sin_theta
+        y = hy - (l / 6) * cos_theta
+
+        # Recover dx and dy from dh
+        dx = dhx + (l / 6) * dtheta * cos_theta
+        dy = dhy + (l / 6) * dtheta * sin_theta
+
+        return np.array([x, dx, y, dy, theta, dtheta, z, dz])
+
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
     ## 🧩 Admissible Path Computation
 
     Implement a function
@@ -2706,6 +2826,11 @@ def _(mo):
 
     that returns a function `fun` such that `fun(t)` is a value of `x, dx, y, dy, theta, dtheta, z, dz, f, phi` at time `t` that match the initial and final values provided as arguments to `compute`.
     """)
+    return
+
+
+@app.cell
+def _():
     return
 
 

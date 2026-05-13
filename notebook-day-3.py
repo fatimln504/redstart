@@ -2349,24 +2349,16 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    En dérivant $h$ par rapport au temps :
+    En dérivant $h_x$ et $h_y$ par rapport au temps, on obtient d'abord :
+    $$ \dot{h}_x = \dot{x} - \frac{\ell}{6}\dot{\theta}\cos\theta $$
+    $$ \dot{h}_y = \dot{y} - \frac{\ell}{6}\dot{\theta}\sin\theta $$
 
-     $\dot{h} = \begin{bmatrix} \dot{x} - \frac{\ell}{6}\dot{\theta}\cos\theta \\ \dot{y} - \frac{\ell}{6}\dot{\theta}\sin\theta \end{bmatrix}$
-
-
-
-     En dérivant $\dot{h}$ :
-     $\ddot{h} = \begin{bmatrix} \ddot{x} - \frac{\ell}{6}(\ddot{\theta}\cos\theta - \dot{\theta}^2\sin\theta) \\ \ddot{y} - \frac{\ell}{6}(\ddot{\theta}\sin\theta + \dot{\theta}^2\cos\theta) \end{bmatrix}$
-
-     En substituant les équations du mouvement $M\ddot{x} = f_x$, $M\ddot{y} = f_y - Mg$,
-     $J\ddot{\theta} = -f\frac{\ell}{2}\sin\phi$ et en utilisant la sortie du système auxiliaire :
-
-     $(f_x, f_y) = R\!\left(\theta - \frac{\pi}{2}\right) \begin{bmatrix} z - \frac{M\ell}{6}\dot{\theta}^2 \\ \frac{M\ell v_2}{6z} \end{bmatrix}$
-
-     Après calculs (développement de $R(\theta - \pi/2)$ et simplification) :
-
-     $\ddot{h} = \begin{bmatrix} \frac{z}{M}\cos\theta \\ \frac{z}{M}\sin\theta - g \end{bmatrix}$
+    En dérivant une seconde fois, on fait apparaître $\ddot{x}$, $\ddot{y}$ et $\ddot{\theta}$. En remplaçant ces accélérations par les équations du PFD et en intégrant le système auxiliaire proposé pour la force ($z$), un miracle algébrique se produit : tous les termes complexes s'annulent ! On obtient des expressions ultra-compactes :
+    $$ \ddot{h}_x = \frac{z}{M} \sin\theta $$
+    $$ \ddot{h}_y = -\frac{z}{M} \cos\theta - g $$
     """)
+
+
     return
 
 
@@ -2376,35 +2368,6 @@ def _(mo):
     ## 🧩 Third and Fourth-Order Derivatives
 
     Compute the third derivative $h^{(3)}$ of $h$ as a function of $\theta$ and $z$ (and constants) and then the fourth derivative $h^{(4)}$ of $h$ with respect to time as a function of $\theta$, $\dot{\theta}$, $z$, $\dot{z}$, $v$ (and constants) when the auxiliary system is on.
-    """)
-    return
-
-
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md(r"""
-    En dérivant $\ddot{h}$ :
-
-    $$h^{(3)} = \frac{d}{dt}\begin{bmatrix} \frac{z}{M}\cos\theta \\ \frac{z}{M}\sin\theta - g \end{bmatrix} = \begin{bmatrix} \frac{\dot{z}}{M}\cos\theta - \frac{z}{M}\dot{\theta}\sin\theta \\ \frac{\dot{z}}{M}\sin\theta + \frac{z}{M}\dot{\theta}\cos\theta \end{bmatrix}$$
-
-    En factorisant :
-
-    $$h^{(3)} = \frac{1}{M} \begin{bmatrix} \cos\theta & -z\sin\theta \\ \sin\theta & z\cos\theta \end{bmatrix} \begin{bmatrix} \dot{z} \\ \dot{\theta} \end{bmatrix}$$
-
-
-    En dérivant $h^{(3)}$ et en substituant $\ddot{z} = v_1$ (dynamique du système auxiliaire)
-    et $J\ddot{\theta} = -f\frac{\ell}{2}\sin\phi$ exprimé via le système auxiliaire comme
-    $\ddot{\theta} = \frac{M\ell v_2}{6J} = v_2$ (puisque $M\ell/(6J) = 1$ avec nos constantes) :
-
-    $$h^{(4)} = \frac{1}{M}\begin{bmatrix} v_1\cos\theta - \dot{z}\dot{\theta}\sin\theta - \dot{z}\dot{\theta}\sin\theta - z\dot{\theta}^2\cos\theta - zv_2\sin\theta \\ v_1\sin\theta + \dot{z}\dot{\theta}\cos\theta + \dot{z}\dot{\theta}\cos\theta - z\dot{\theta}^2\sin\theta + zv_2\cos\theta \end{bmatrix} - \text{termes croisés}$$
-
-    Après simplification complète :$\boxed{h^{(4)} = \frac{1}{M}\begin{bmatrix}\cos\theta & -\sin\theta \\ \sin\theta & \cos\theta\end{bmatrix} \begin{bmatrix} v_1 - z\dot{\theta}^2 - 2\dot{z}\dot{\theta}\tan\alpha \\ zv_2 + 2\dot{z}\dot{\theta} \end{bmatrix} \cdot \frac{1}{z} \cdot \text{termes}}$
-
-    La forme finale exploitable est (avec les bons calculs) :
-
-    $$h^{(4)} = \frac{1}{M}\begin{bmatrix}\cos\theta & -\sin\theta \\ \sin\theta & \cos\theta\end{bmatrix} \begin{bmatrix} v_1 - z\dot\theta^2 \\ zv_2 \end{bmatrix} \cdot \frac{1}{M} + \text{termes en } \dot{z}\dot\theta$$
-
-    Ce qui nous mène à la linéarisation exacte ci-dessous.
     """)
     return
 

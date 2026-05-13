@@ -2646,16 +2646,16 @@ def _(M, g, l, np):
 
 
 @app.cell
-def _(M, Tr, g, np):
+def _(Tr):
     Tr(
-        x=0.0,
-        dx=0.0,
-        y=10.0,
-        dy=0.0,
-        theta=np.pi / 6,
-        dtheta=0.0,
-        z=-M * g,
-        dz=0.0,
+        x=1.0,
+        dx=2.0,
+        y=3.0,
+        dy=4.0,
+        theta=0.1,
+        dtheta=0.2,
+        z=-0.3,
+        dz=-0.4,
     )
     return
 
@@ -2790,6 +2790,21 @@ def _(M, g, l, np):
 
         return np.array([x, dx, y, dy, theta, dtheta, z, dz])
 
+    return (T_inv,)
+
+
+@app.cell
+def _(T_inv, Tr):
+    T_inv(*Tr(
+        x=1.0,
+        dx=2.0,
+        y=3.0,
+        dy=4.0,
+        theta=0.1,
+        dtheta=0.2,
+        z=-0.3,
+        dz=-0.4,
+    ))
     return
 
 
@@ -2830,8 +2845,137 @@ def _(mo):
 
 
 @app.cell
-def _():
-    return
+def _(M, T_inv, Tr, l, np):
+    def compute(
+        x_0,
+        dx_0,
+        y_0,
+        dy_0,
+        theta_0,
+        dtheta_0,
+        z_0,
+        dz_0,
+        x_tf,
+        dx_tf,
+        y_tf,
+        dy_tf,
+        theta_tf,
+        dtheta_tf,
+        z_tf,
+        dz_tf,
+        tf,
+    ):
+        def poly7_from_boundary(q0, dq0, d2q0, d3q0, qf, dqf, d2qf, d3qf, tf):
+            A_poly = np.zeros((8, 8))
+            b_poly = np.array([q0, dq0, d2q0, d3q0, qf, dqf, d2qf, d3qf])
+
+            # Conditions at t = 0
+            A_poly[0, 0] = 1.0
+            A_poly[1, 1] = 1.0
+            A_poly[2, 2] = 2.0
+            A_poly[3, 3] = 6.0
+
+            # Conditions at t = tf
+            for i in range(8):
+                A_poly[4, i] = tf**i
+
+            for i in range(1, 8):
+                A_poly[5, i] = i * tf**(i - 1)
+
+            for i in range(2, 8):
+                A_poly[6, i] = i * (i - 1) * tf**(i - 2)
+
+            for i in range(3, 8):
+                A_poly[7, i] = i * (i - 1) * (i - 2) * tf**(i - 3)
+
+            return np.linalg.solve(A_poly, b_poly)
+
+        def eval_poly_derivative(coeffs, t, order):
+            value = 0.0
+
+            for i, coeff in enumerate(coeffs):
+                if i >= order:
+                    factor = 1.0
+                    for k in range(order):
+                        factor *= i - k
+                    value += coeff * factor * t**(i - order)
+
+            return value
+
+        def Rot_local(alpha):
+            return np.array([
+                [np.cos(alpha), -np.sin(alpha)],
+                [np.sin(alpha),  np.cos(alpha)],
+            ])
+
+        # Passage des états physiques initiaux/final vers h, dh, d2h, d3h
+        tr_0 = Tr(x_0, dx_0, y_0, dy_0, theta_0, dtheta_0, z_0, dz_0)
+        tr_tf = Tr(x_tf, dx_tf, y_tf, dy_tf, theta_tf, dtheta_tf, z_tf, dz_tf)
+
+        hx_0, hy_0, dhx_0, dhy_0, d2hx_0, d2hy_0, d3hx_0, d3hy_0 = tr_0
+        hx_tf, hy_tf, dhx_tf, dhy_tf, d2hx_tf, d2hy_tf, d3hx_tf, d3hy_tf = tr_tf
+
+        # Polynômes de degré 7 pour hx et hy
+        coeffs_hx = poly7_from_boundary(
+            hx_0, dhx_0, d2hx_0, d3hx_0,
+            hx_tf, dhx_tf, d2hx_tf, d3hx_tf,
+            tf,
+        )
+
+        coeffs_hy = poly7_from_boundary(
+            hy_0, dhy_0, d2hy_0, d3hy_0,
+            hy_tf, dhy_tf, d2hy_tf, d3hy_tf,
+            tf,
+        )
+
+        def fun(t):
+            hx = eval_poly_derivative(coeffs_hx, t, 0)
+            hy = eval_poly_derivative(coeffs_hy, t, 0)
+
+            dhx = eval_poly_derivative(coeffs_hx, t, 1)
+            dhy = eval_poly_derivative(coeffs_hy, t, 1)
+
+            d2hx = eval_poly_derivative(coeffs_hx, t, 2)
+            d2hy = eval_poly_derivative(coeffs_hy, t, 2)
+
+            d3hx = eval_poly_derivative(coeffs_hx, t, 3)
+            d3hy = eval_poly_derivative(coeffs_hy, t, 3)
+
+            u1 = eval_poly_derivative(coeffs_hx, t, 4)
+            u2 = eval_poly_derivative(coeffs_hy, t, 4)
+
+            # Reconstruction de l’état physique
+            x, dx, y, dy, theta, dtheta, z, dz = T_inv(
+                hx, hy, dhx, dhy, d2hx, d2hy, d3hx, d3hy
+            )
+
+            # Commande auxiliaire v à partir de u
+            v1 = z * dtheta**2 + M * (u1 * np.sin(theta) - u2 * np.cos(theta))
+            v2 = -2 * dz * dtheta + M * (u1 * np.cos(theta) + u2 * np.sin(theta))
+
+            if abs(z) < 1e-9:
+                raise ValueError("z is too close to zero: force is not defined.")
+
+            # Reconstruction de la force cartésienne
+            force_vector = np.array([
+                z - M * l * dtheta**2 / 6,
+                M * l * v2 / (6 * z),
+            ])
+
+            fx, fy = Rot_local(theta - np.pi / 2) @ force_vector
+
+            # Passage de (fx, fy) vers (f, phi)
+            f = np.sqrt(fx**2 + fy**2)
+
+            beta = np.arctan2(-fx, fy)
+            phi = beta - theta
+            phi = (phi + np.pi) % (2 * np.pi) - np.pi
+
+            return np.array([x, dx, y, dy, theta, dtheta, z, dz, f, phi])
+
+        return fun
+
+    return (compute,)
 
 
 @app.cell(hide_code=True)
@@ -2846,6 +2990,179 @@ def _(mo):
     - `tf = 10.0`.
 
     Make the graph of the relevant variables as a function of time, then make an animation out of the same result. Comment and iterate if necessary!
+    """)
+    return
+
+
+@app.cell
+def _(M, booster_anim, compute, g, l, mo, np, plt, world):
+    def run_graphical_validation():
+        tf = 10.0
+
+        fun = compute(
+            x_0=5.0,
+            dx_0=0.0,
+            y_0=20.0,
+            dy_0=-1.0,
+            theta_0=-np.pi / 8,
+            dtheta_0=0.0,
+            z_0=-M * g,
+            dz_0=0.0,
+            x_tf=0.0,
+            dx_tf=0.0,
+            y_tf=(2 / 3) * l,
+            dy_tf=0.0,
+            theta_tf=0.0,
+            dtheta_tf=0.0,
+            z_tf=-M * g,
+            dz_tf=0.0,
+            tf=tf,
+        )
+
+        t_values = np.linspace(0.0, tf, 1000)
+        values = np.array([fun(t) for t in t_values])
+
+        x_values = values[:, 0]
+        dx_values = values[:, 1]
+        y_values = values[:, 2]
+        dy_values = values[:, 3]
+        theta_values = values[:, 4]
+        dtheta_values = values[:, 5]
+        z_values = values[:, 6]
+        dz_values = values[:, 7]
+        f_values = values[:, 8]
+        phi_values = values[:, 9]
+
+        print("Initial value fun(0):")
+        print(fun(0.0))
+        print("-" * 50)
+        print("Final value fun(tf):")
+        print(fun(tf))
+        print("-" * 50)
+        print("min z =", np.min(z_values))
+        print("max |theta| =", np.max(np.abs(theta_values)))
+        print("max |phi| =", np.max(np.abs(phi_values)))
+        print("min f =", np.min(f_values))
+        print("max f =", np.max(f_values))
+
+        fig_validation, ax_validation = plt.subplots(4, 1, figsize=(10, 10), sharex=True)
+
+        ax_validation[0].plot(t_values, x_values, label=r"$x(t)$")
+        ax_validation[0].plot(t_values, y_values, label=r"$y(t)$")
+        ax_validation[0].set_ylabel("position (m)")
+        ax_validation[0].grid(True)
+        ax_validation[0].legend()
+
+        ax_validation[1].plot(t_values, theta_values, label=r"$\theta(t)$")
+        ax_validation[1].plot(t_values, phi_values, label=r"$\phi(t)$")
+        ax_validation[1].axhline(np.pi / 2, color="grey", ls="--", label=r"$\pm \pi/2$")
+        ax_validation[1].axhline(-np.pi / 2, color="grey", ls="--")
+        ax_validation[1].set_ylabel("angle (rad)")
+        ax_validation[1].grid(True)
+        ax_validation[1].legend()
+
+        ax_validation[2].plot(t_values, z_values, label=r"$z(t)$")
+        ax_validation[2].axhline(0, color="grey", ls="--", label=r"$z=0$")
+        ax_validation[2].set_ylabel(r"$z(t)$")
+        ax_validation[2].grid(True)
+        ax_validation[2].legend()
+
+        ax_validation[3].plot(t_values, f_values, label=r"$f(t)$")
+        ax_validation[3].set_xlabel("time $t$ (s)")
+        ax_validation[3].set_ylabel("force")
+        ax_validation[3].grid(True)
+        ax_validation[3].legend()
+
+        fig_validation.suptitle("Graphical validation of the admissible path")
+        fig_validation.tight_layout()
+
+        def x_anim(t):
+            return fun(t)[0]
+
+        def y_anim(t):
+            return fun(t)[2]
+
+        def theta_anim(t):
+            return fun(t)[4]
+
+        def f_anim(t):
+            return fun(t)[8]
+
+        def phi_anim(t):
+            return fun(t)[9]
+
+        animation_validation = mo.Html(
+            world(
+                [-2, 7, -2, 22],
+                booster_anim(
+                    x_anim,
+                    y_anim,
+                    theta_anim,
+                    f_anim,
+                    phi_anim,
+                    T=tf,
+                ),
+            )
+        ).center()
+
+        return mo.vstack(
+            [
+                mo.md("### Graphical validation"),
+                fig_validation,
+                mo.md("### Animation"),
+                animation_validation,
+            ]
+        )
+
+
+    graphical_validation_output = run_graphical_validation()
+    graphical_validation_output
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    ### Interprétation — Validation graphique
+
+    La fonction `compute` construit une trajectoire admissible entre l’état initial et l’état final imposés.
+
+    Au début, le booster est placé en :
+
+    \[
+    x(0)=5,\qquad y(0)=20,\qquad \theta(0)=-\frac{\pi}{8},
+    \]
+
+    avec une vitesse verticale initiale :
+
+    \[
+    \dot{y}(0)=-1.
+    \]
+
+    À la fin, on veut atteindre :
+
+    \[
+    x(t_f)=0,\qquad y(t_f)=\frac{2\ell}{3},\qquad \theta(t_f)=0,
+    \]
+
+    avec des vitesses nulles.
+
+    Les graphes montrent que les variables \(x(t)\), \(y(t)\) et \(\theta(t)\) évoluent progressivement de leurs valeurs initiales vers les valeurs finales demandées.
+    La trajectoire ramène donc le booster vers la zone cible tout en le redressant.
+
+    Le graphe de \(z(t)\) permet aussi de vérifier l’hypothèse utilisée dans l’inversion :
+
+    \[
+    z(t)<0.
+    \]
+
+    Cette condition est importante, car l’expression de la force devient singulière lorsque \(z=0\).
+    Si \(z(t)\) reste strictement négatif, l’inversion reste bien définie sur toute la trajectoire.
+
+    Les graphes de \(f(t)\) et \(\phi(t)\) montrent les commandes nécessaires pour suivre cette trajectoire.
+    L’animation confirme visuellement le résultat : le booster descend vers la cible, se redresse progressivement, puis atteint l’état final imposé.
+
+    Ainsi, la fonction `compute` permet bien de générer une trajectoire admissible pour le booster à partir de la linéarisation exacte.
     """)
     return
 

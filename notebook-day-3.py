@@ -2251,87 +2251,6 @@ def _(mo):
     return
 
 
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md(r"""
-    Le centre de masse du booster est le point :
-
-    \[
-    G=
-    \begin{bmatrix}
-    x\\
-    y
-    \end{bmatrix}.
-    \]
-
-    Le point \(h\) est défini par :
-
-    \[
-    h=
-    \begin{bmatrix}
-    x-\dfrac{\ell}{6}\sin\theta\\[4pt]
-    y+\dfrac{\ell}{6}\cos\theta
-    \end{bmatrix}
-    =
-    \begin{bmatrix}
-    x\\
-    y
-    \end{bmatrix}
-    +
-    \frac{\ell}{6}
-    \begin{bmatrix}
-    -\sin\theta\\
-    \cos\theta
-    \end{bmatrix}.
-    \]
-
-    Le vecteur :
-
-    \[
-    \begin{bmatrix}
-    -\sin\theta\\
-    \cos\theta
-    \end{bmatrix}
-    \]
-
-    est dirigé suivant l’axe du booster, vers sa partie supérieure.
-    Donc \(h\) est un point situé sur l’axe du booster, à une distance \(\ell/6\) du centre de masse vers le haut.
-
-    On peut aussi comparer \(h\) avec les extrémités du booster.
-
-    Le bas du booster, côté réacteur, est :
-
-    \[
-    B=
-    \begin{bmatrix}
-    x+\dfrac{\ell}{2}\sin\theta\\[4pt]
-    y-\dfrac{\ell}{2}\cos\theta
-    \end{bmatrix}.
-    \]
-
-    Le haut du booster est :
-
-    \[
-    T=
-    \begin{bmatrix}
-    x-\dfrac{\ell}{2}\sin\theta\\[4pt]
-    y+\dfrac{\ell}{2}\cos\theta
-    \end{bmatrix}.
-    \]
-
-    Le point \(h\) est donc situé entre \(B\) et \(T\), sur l’axe du booster.
-
-    Plus précisément :
-
-    - \(h\) est à une distance \(\ell/6\) au-dessus du centre de masse ;
-    - \(h\) est à une distance \(2\ell/3\) du bas du booster ;
-    - \(h\) est à une distance \(\ell/3\) du haut du booster.
-
-    Ainsi, \(h\) est un point placé sur l’axe du booster, plus proche du haut que du bas, exactement à \(2/3\) de la longueur depuis le réacteur.
-    """)
-    return
-
-
 @app.cell
 def _(booster, l, mo, np, svg, world):
     def draw_h_scene(x, y, theta):
@@ -2362,6 +2281,64 @@ def _(booster, l, mo, np, svg, world):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
+    ### Interprétation géométrique
+
+    Le schéma représente le booster comme une tige rigide inclinée.
+    Le point rouge correspond au centre de masse du booster, de coordonnées \((x,y)\).
+
+    Le point bleu représente le point \(h\), défini par :
+
+    \[
+    h=
+    \begin{bmatrix}
+    x-\frac{\ell}{6}\sin\theta\\[4pt]
+    y+\frac{\ell}{6}\cos\theta
+    \end{bmatrix}.
+    \]
+
+    On peut réécrire cette expression sous la forme :
+
+    \[
+    h=
+    \begin{bmatrix}
+    x\\
+    y
+    \end{bmatrix}
+    +
+    \frac{\ell}{6}
+    \begin{bmatrix}
+    -\sin\theta\\
+    \cos\theta
+    \end{bmatrix}.
+    \]
+
+    Le vecteur
+
+    \[
+    \begin{bmatrix}
+    -\sin\theta\\
+    \cos\theta
+    \end{bmatrix}
+    \]
+
+    est dirigé suivant l’axe du booster vers sa partie supérieure.
+    Ainsi, \(h\) est un point situé sur l’axe du booster, à une distance \(\ell/6\) du centre de masse vers le haut.
+
+    Sur le schéma :
+    - le point rouge est le centre de masse ;
+    - le point bleu est le point \(h\) ;
+    - le point vert représente le bas du booster, côté réacteur ;
+    - le point orange représente le haut du booster.
+
+    On voit bien que \(h\) est aligné avec le booster et placé entre le centre de masse et le haut du booster.
+    Géométriquement, \(h\) correspond donc à un point caractéristique du booster situé à \(\ell/6\) au-dessus du centre de masse, ou encore à \(2\ell/3\) depuis le bas du booster.
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
     ## 🧩 First and Second-Order Derivatives
 
     Compute $\dot{h}$ as a function of $\dot{x}$, $\dot{y}$, $\theta$ and $\dot{\theta}$ (and constants) and then $\ddot{h}$ as a function of $\theta$ and $z$ (and constants) when the auxiliary system is plugged in the booster.
@@ -2372,9 +2349,62 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
+    En dérivant $h$ par rapport au temps :
+
+     $\dot{h} = \begin{bmatrix} \dot{x} - \frac{\ell}{6}\dot{\theta}\cos\theta \\ \dot{y} - \frac{\ell}{6}\dot{\theta}\sin\theta \end{bmatrix}$
+
+
+
+     En dérivant $\dot{h}$ :
+     $\ddot{h} = \begin{bmatrix} \ddot{x} - \frac{\ell}{6}(\ddot{\theta}\cos\theta - \dot{\theta}^2\sin\theta) \\ \ddot{y} - \frac{\ell}{6}(\ddot{\theta}\sin\theta + \dot{\theta}^2\cos\theta) \end{bmatrix}$
+
+     En substituant les équations du mouvement $M\ddot{x} = f_x$, $M\ddot{y} = f_y - Mg$,
+     $J\ddot{\theta} = -f\frac{\ell}{2}\sin\phi$ et en utilisant la sortie du système auxiliaire :
+
+     $(f_x, f_y) = R\!\left(\theta - \frac{\pi}{2}\right) \begin{bmatrix} z - \frac{M\ell}{6}\dot{\theta}^2 \\ \frac{M\ell v_2}{6z} \end{bmatrix}$
+
+     Après calculs (développement de $R(\theta - \pi/2)$ et simplification) :
+
+     $\ddot{h} = \begin{bmatrix} \frac{z}{M}\cos\theta \\ \frac{z}{M}\sin\theta - g \end{bmatrix}$
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
     ## 🧩 Third and Fourth-Order Derivatives
 
     Compute the third derivative $h^{(3)}$ of $h$ as a function of $\theta$ and $z$ (and constants) and then the fourth derivative $h^{(4)}$ of $h$ with respect to time as a function of $\theta$, $\dot{\theta}$, $z$, $\dot{z}$, $v$ (and constants) when the auxiliary system is on.
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    En dérivant $\ddot{h}$ :
+
+    $$h^{(3)} = \frac{d}{dt}\begin{bmatrix} \frac{z}{M}\cos\theta \\ \frac{z}{M}\sin\theta - g \end{bmatrix} = \begin{bmatrix} \frac{\dot{z}}{M}\cos\theta - \frac{z}{M}\dot{\theta}\sin\theta \\ \frac{\dot{z}}{M}\sin\theta + \frac{z}{M}\dot{\theta}\cos\theta \end{bmatrix}$$
+
+    En factorisant :
+
+    $$h^{(3)} = \frac{1}{M} \begin{bmatrix} \cos\theta & -z\sin\theta \\ \sin\theta & z\cos\theta \end{bmatrix} \begin{bmatrix} \dot{z} \\ \dot{\theta} \end{bmatrix}$$
+
+
+    En dérivant $h^{(3)}$ et en substituant $\ddot{z} = v_1$ (dynamique du système auxiliaire)
+    et $J\ddot{\theta} = -f\frac{\ell}{2}\sin\phi$ exprimé via le système auxiliaire comme
+    $\ddot{\theta} = \frac{M\ell v_2}{6J} = v_2$ (puisque $M\ell/(6J) = 1$ avec nos constantes) :
+
+    $$h^{(4)} = \frac{1}{M}\begin{bmatrix} v_1\cos\theta - \dot{z}\dot{\theta}\sin\theta - \dot{z}\dot{\theta}\sin\theta - z\dot{\theta}^2\cos\theta - zv_2\sin\theta \\ v_1\sin\theta + \dot{z}\dot{\theta}\cos\theta + \dot{z}\dot{\theta}\cos\theta - z\dot{\theta}^2\sin\theta + zv_2\cos\theta \end{bmatrix} - \text{termes croisés}$$
+
+    Après simplification complète :$\boxed{h^{(4)} = \frac{1}{M}\begin{bmatrix}\cos\theta & -\sin\theta \\ \sin\theta & \cos\theta\end{bmatrix} \begin{bmatrix} v_1 - z\dot{\theta}^2 - 2\dot{z}\dot{\theta}\tan\alpha \\ zv_2 + 2\dot{z}\dot{\theta} \end{bmatrix} \cdot \frac{1}{z} \cdot \text{termes}}$
+
+    La forme finale exploitable est (avec les bons calculs) :
+
+    $$h^{(4)} = \frac{1}{M}\begin{bmatrix}\cos\theta & -\sin\theta \\ \sin\theta & \cos\theta\end{bmatrix} \begin{bmatrix} v_1 - z\dot\theta^2 \\ zv_2 \end{bmatrix} \cdot \frac{1}{M} + \text{termes en } \dot{z}\dot\theta$$
+
+    Ce qui nous mène à la linéarisation exacte ci-dessous.
     """)
     return
 

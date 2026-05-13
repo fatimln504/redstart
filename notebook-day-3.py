@@ -2349,16 +2349,58 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    En dérivant $h_x$ et $h_y$ par rapport au temps, on obtient d'abord :
-    $$ \dot{h}_x = \dot{x} - \frac{\ell}{6}\dot{\theta}\cos\theta $$
-    $$ \dot{h}_y = \dot{y} - \frac{\ell}{6}\dot{\theta}\sin\theta $$
+    ### 🔓 Solution
 
-    En dérivant une seconde fois, on fait apparaître $\ddot{x}$, $\ddot{y}$ et $\ddot{\theta}$. En remplaçant ces accélérations par les équations du PFD et en intégrant le système auxiliaire proposé pour la force ($z$), un miracle algébrique se produit : tous les termes complexes s'annulent ! On obtient des expressions ultra-compactes :
-    $$ \ddot{h}_x = \frac{z}{M} \sin\theta $$
-    $$ \ddot{h}_y = -\frac{z}{M} \cos\theta - g $$
+    On part de :
+
+    \[
+    h=
+    \begin{bmatrix}
+    x-\dfrac{\ell}{6}\sin\theta\\[4pt]
+    y+\dfrac{\ell}{6}\cos\theta
+    \end{bmatrix}.
+    \]
+
+    En dérivant une première fois, on obtient :
+
+    \[
+    \dot{h}
+    =
+    \begin{bmatrix}
+    \dot{x}-\dfrac{\ell}{6}\dot{\theta}\cos\theta\\[6pt]
+    \dot{y}-\dfrac{\ell}{6}\dot{\theta}\sin\theta
+    \end{bmatrix}.
+    \]
+
+    En dérivant une deuxième fois :
+
+    \[
+    \ddot{h}
+    =
+    \begin{bmatrix}
+    \ddot{x}
+    +\dfrac{\ell}{6}\dot{\theta}^2\sin\theta
+    -\dfrac{\ell}{6}\ddot{\theta}\cos\theta\\[6pt]
+    \ddot{y}
+    -\dfrac{\ell}{6}\dot{\theta}^2\cos\theta
+    -\dfrac{\ell}{6}\ddot{\theta}\sin\theta
+    \end{bmatrix}.
+    \]
+
+    Lorsque le système auxiliaire est branché sur le booster, la force est choisie de manière à compenser les termes liés à \(\dot{\theta}^2\) et à \(\ddot{\theta}\).
+    Il reste alors une expression simple de l’accélération du point \(h\) :
+
+    \[
+    \ddot{h}
+    =
+    \begin{bmatrix}
+    \dfrac{z}{M}\sin\theta\\[6pt]
+    -\dfrac{z}{M}\cos\theta - g
+    \end{bmatrix}.
+    \]
+
+    Ainsi, grâce au choix particulier de la force générée par le système auxiliaire, la dynamique de \(h\) dépend uniquement de \(\theta\), de \(z\), de \(M\) et de \(g\).
     """)
-
-
     return
 
 
@@ -2368,6 +2410,104 @@ def _(mo):
     ## 🧩 Third and Fourth-Order Derivatives
 
     Compute the third derivative $h^{(3)}$ of $h$ as a function of $\theta$ and $z$ (and constants) and then the fourth derivative $h^{(4)}$ of $h$ with respect to time as a function of $\theta$, $\dot{\theta}$, $z$, $\dot{z}$, $v$ (and constants) when the auxiliary system is on.
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    ### 🔓 Solution
+
+    À la question précédente, on a obtenu :
+
+    \[
+    \ddot{h}
+    =
+    \begin{bmatrix}
+    \dfrac{z}{M}\sin\theta\\[6pt]
+    -\dfrac{z}{M}\cos\theta - g
+    \end{bmatrix}.
+    \]
+
+    En dérivant une troisième fois :
+
+    \[
+    h^{(3)}
+    =
+    \frac{1}{M}
+    \begin{bmatrix}
+    \dot{z}\sin\theta + z\dot{\theta}\cos\theta\\[6pt]
+    -\dot{z}\cos\theta + z\dot{\theta}\sin\theta
+    \end{bmatrix}.
+    \]
+
+    En dérivant encore une fois :
+
+    \[
+    h^{(4)}
+    =
+    \frac{1}{M}
+    \begin{bmatrix}
+    \ddot{z}\sin\theta
+    +2\dot{z}\dot{\theta}\cos\theta
+    +z\ddot{\theta}\cos\theta
+    -z\dot{\theta}^{2}\sin\theta\\[6pt]
+    -\ddot{z}\cos\theta
+    +2\dot{z}\dot{\theta}\sin\theta
+    +z\ddot{\theta}\sin\theta
+    +z\dot{\theta}^{2}\cos\theta
+    \end{bmatrix}.
+    \]
+
+    Or, avec le système auxiliaire, on a :
+
+    \[
+    \ddot{z}=v_1,
+    \qquad
+    \ddot{\theta}=\frac{v_2}{z}.
+    \]
+
+    Donc :
+
+    \[
+    h^{(4)}
+    =
+    \frac{1}{M}
+    \begin{bmatrix}
+    v_1\sin\theta
+    +2\dot{z}\dot{\theta}\cos\theta
+    +v_2\cos\theta
+    -z\dot{\theta}^{2}\sin\theta\\[6pt]
+    -v_1\cos\theta
+    +2\dot{z}\dot{\theta}\sin\theta
+    +v_2\sin\theta
+    +z\dot{\theta}^{2}\cos\theta
+    \end{bmatrix}.
+    \]
+
+    On peut aussi l’écrire de manière plus compacte :
+
+    \[
+    h^{(4)}
+    =
+    \frac{1}{M}
+    \left[
+    (v_1-z\dot{\theta}^2)
+    \begin{bmatrix}
+    \sin\theta\\
+    -\cos\theta
+    \end{bmatrix}
+    +
+    (v_2+2\dot{z}\dot{\theta})
+    \begin{bmatrix}
+    \cos\theta\\
+    \sin\theta
+    \end{bmatrix}
+    \right].
+    \]
+
+    Cette forme est importante, car elle montre que \(h^{(4)}\) dépend linéairement des nouvelles entrées \(v_1\) et \(v_2\).
     """)
     return
 

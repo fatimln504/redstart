@@ -2349,7 +2349,7 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    ### 🔓 Solution
+    ###  Solution
 
     On part de :
 
@@ -2417,97 +2417,44 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    ### 🔓 Solution
-
     À la question précédente, on a obtenu :
 
-    \[
-    \ddot{h}
-    =
-    \begin{bmatrix}
-    \dfrac{z}{M}\sin\theta\\[6pt]
-    -\dfrac{z}{M}\cos\theta - g
-    \end{bmatrix}.
-    \]
+    $$
+    \ddot{h} = \begin{bmatrix} \frac{z}{M}\sin\theta \\[6pt] -\frac{z}{M}\cos\theta - g \end{bmatrix}
+    $$
 
     En dérivant une troisième fois :
 
-    \[
-    h^{(3)}
-    =
-    \frac{1}{M}
-    \begin{bmatrix}
-    \dot{z}\sin\theta + z\dot{\theta}\cos\theta\\[6pt]
-    -\dot{z}\cos\theta + z\dot{\theta}\sin\theta
-    \end{bmatrix}.
-    \]
+    $$
+    h^{(3)} = \frac{1}{M} \begin{bmatrix} \dot{z}\sin\theta + z\dot{\theta}\cos\theta \\[6pt] -\dot{z}\cos\theta + z\dot{\theta}\sin\theta \end{bmatrix}
+    $$
 
-    En dérivant encore une fois :
+    En dérivant encore une fois, on obtient :
 
-    \[
-    h^{(4)}
-    =
-    \frac{1}{M}
-    \begin{bmatrix}
-    \ddot{z}\sin\theta
-    +2\dot{z}\dot{\theta}\cos\theta
-    +z\ddot{\theta}\cos\theta
-    -z\dot{\theta}^{2}\sin\theta\\[6pt]
-    -\ddot{z}\cos\theta
-    +2\dot{z}\dot{\theta}\sin\theta
-    +z\ddot{\theta}\sin\theta
-    +z\dot{\theta}^{2}\cos\theta
-    \end{bmatrix}.
-    \]
+    $$
+    h^{(4)} = \frac{1}{M} \begin{bmatrix} \ddot{z}\sin\theta + 2\dot{z}\dot{\theta}\cos\theta + z\ddot{\theta}\cos\theta - z\dot{\theta}^2\sin\theta \\[6pt] -\ddot{z}\cos\theta + 2\dot{z}\dot{\theta}\sin\theta + z\ddot{\theta}\sin\theta + z\dot{\theta}^2\cos\theta \end{bmatrix}
+    $$
 
-    Or, avec le système auxiliaire, on a :
+    Or, l'énoncé du système auxiliaire nous donne directement les commandes virtuelles :
+    $$ \ddot{z} = v_1 \qquad \text{et} \qquad \ddot{\theta} = \frac{v_2}{z} $$
 
-    \[
-    \ddot{z}=v_1,
-    \qquad
-    \ddot{\theta}=\frac{v_2}{z}.
-    \]
+    En remplaçant $\ddot{z}$ par $v_1$ et $z\ddot{\theta}$ par $v_2$, et en factorisant l'équation sous forme matricielle, on obtient :
 
-    Donc :
+    $$
+    h^{(4)} = \frac{1}{M} \begin{bmatrix} \sin\theta & \cos\theta \\ -\cos\theta & \sin\theta \end{bmatrix} \begin{bmatrix} v_1 - z\dot{\theta}^2 \\ v_2 + 2\dot{z}\dot{\theta} \end{bmatrix}
+    $$
 
-    \[
-    h^{(4)}
-    =
-    \frac{1}{M}
-    \begin{bmatrix}
-    v_1\sin\theta
-    +2\dot{z}\dot{\theta}\cos\theta
-    +v_2\cos\theta
-    -z\dot{\theta}^{2}\sin\theta\\[6pt]
-    -v_1\cos\theta
-    +2\dot{z}\dot{\theta}\sin\theta
-    +v_2\sin\theta
-    +z\dot{\theta}^{2}\cos\theta
-    \end{bmatrix}.
-    \]
+    et:
 
-    On peut aussi l’écrire de manière plus compacte :
+    $$
+    R\left(\theta - \frac{\pi}{2}\right) = \begin{bmatrix} \cos(\theta - \pi/2) & -\sin(\theta - \pi/2) \\ \sin(\theta - \pi/2) & \cos(\theta - \pi/2) \end{bmatrix} = \begin{bmatrix} \sin\theta & \cos\theta \\ -\cos\theta & \sin\theta \end{bmatrix}
+    $$
 
-    \[
-    h^{(4)}
-    =
-    \frac{1}{M}
-    \left[
-    (v_1-z\dot{\theta}^2)
-    \begin{bmatrix}
-    \sin\theta\\
-    -\cos\theta
-    \end{bmatrix}
-    +
-    (v_2+2\dot{z}\dot{\theta})
-    \begin{bmatrix}
-    \cos\theta\\
-    \sin\theta
-    \end{bmatrix}
-    \right].
-    \]
 
-    Cette forme est importante, car elle montre que \(h^{(4)}\) dépend linéairement des nouvelles entrées \(v_1\) et \(v_2\).
+
+    $$
+    h^{(4)} = \frac{1}{M} R\left(\theta - \frac{\pi}{2}\right) \begin{bmatrix} v_1 - z\dot{\theta}^2 \\ v_2 + 2\dot{z}\dot{\theta} \end{bmatrix}
+    $$
     """)
     return
 
@@ -2529,10 +2476,187 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
+    ### 🔓 Solution
+
+    À la question précédente, on a obtenu :
+
+    \[
+    h^{(4)}
+    =
+    \frac{1}{M}
+    R\left(\theta-\frac{\pi}{2}\right)
+    \begin{bmatrix}
+    v_1-z\dot{\theta}^2\\[4pt]
+    v_2+2\dot{z}\dot{\theta}
+    \end{bmatrix}.
+    \]
+
+    On veut maintenant choisir un nouveau système auxiliaire, d’entrée :
+
+    \[
+    u=
+    \begin{bmatrix}
+    u_1\\
+    u_2
+    \end{bmatrix},
+    \]
+
+    tel que :
+
+    \[
+    h^{(4)}=u.
+    \]
+
+    Il suffit donc d’imposer :
+
+    \[
+    \frac{1}{M}
+    R\left(\theta-\frac{\pi}{2}\right)
+    \begin{bmatrix}
+    v_1-z\dot{\theta}^2\\[4pt]
+    v_2+2\dot{z}\dot{\theta}
+    \end{bmatrix}
+    =
+    u.
+    \]
+
+    Donc :
+
+    \[
+    R\left(\theta-\frac{\pi}{2}\right)
+    \begin{bmatrix}
+    v_1-z\dot{\theta}^2\\[4pt]
+    v_2+2\dot{z}\dot{\theta}
+    \end{bmatrix}
+    =
+    M u.
+    \]
+
+    Comme \(R\left(\theta-\frac{\pi}{2}\right)\) est une matrice de rotation, elle est inversible. On obtient alors :
+
+    \[
+    \begin{bmatrix}
+    v_1-z\dot{\theta}^2\\[4pt]
+    v_2+2\dot{z}\dot{\theta}
+    \end{bmatrix}
+    =
+    M R\left(\theta-\frac{\pi}{2}\right)^{-1}
+    \begin{bmatrix}
+    u_1\\
+    u_2
+    \end{bmatrix}.
+    \]
+
+    Or :
+
+    \[
+    R\left(\theta-\frac{\pi}{2}\right)
+    =
+    \begin{bmatrix}
+    \sin\theta & \cos\theta\\
+    -\cos\theta & \sin\theta
+    \end{bmatrix},
+    \]
+
+    donc :
+
+    \[
+    R\left(\theta-\frac{\pi}{2}\right)^{-1}
+    =
+    \begin{bmatrix}
+    \sin\theta & -\cos\theta\\
+    \cos\theta & \sin\theta
+    \end{bmatrix}.
+    \]
+
+    Ainsi :
+
+    \[
+    \begin{bmatrix}
+    v_1-z\dot{\theta}^2\\[4pt]
+    v_2+2\dot{z}\dot{\theta}
+    \end{bmatrix}
+    =
+    M
+    \begin{bmatrix}
+    \sin\theta & -\cos\theta\\
+    \cos\theta & \sin\theta
+    \end{bmatrix}
+    \begin{bmatrix}
+    u_1\\
+    u_2
+    \end{bmatrix}.
+    \]
+
+    On en déduit :
+
+    \[
+    v_1
+    =
+    z\dot{\theta}^2
+    +
+    M\left(u_1\sin\theta-u_2\cos\theta\right),
+    \]
+
+    \[
+    v_2
+    =
+    -2\dot{z}\dot{\theta}
+    +
+    M\left(u_1\cos\theta+u_2\sin\theta\right).
+    \]
+
+    Avec ce choix de \(v_1\) et \(v_2\), on obtient directement :
+
+    \[
+    h^{(4)}=u.
+    \]
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
     ## 🧩 State to Derivatives of the Output
 
     Implement a function `Tr` of `x, dx, y, dy, theta, dtheta, z, dz` that returns `h_x, h_y, dh_x, dh_y, d2h_x, d2h_y, d3h_x, d3h_y`.
     """)
+    return
+
+
+@app.cell
+def _(M, g, l, np):
+    def Tr(x, dx, y, dy, theta, dtheta, z, dz):
+        hx = x - (l / 6) * np.sin(theta)
+        hy = y + (l / 6) * np.cos(theta)
+
+        dhx = dx - (l / 6) * dtheta * np.cos(theta)
+        dhy = dy - (l / 6) * dtheta * np.sin(theta)
+
+        d2hx = (z / M) * np.sin(theta)
+        d2hy = -(z / M) * np.cos(theta) - g
+
+        d3hx = (1 / M) * (dz * np.sin(theta) + z * dtheta * np.cos(theta))
+        d3hy = (1 / M) * (-dz * np.cos(theta) + z * dtheta * np.sin(theta))
+
+        return np.array([hx, hy, dhx, dhy, d2hx, d2hy, d3hx, d3hy])
+
+    return (Tr,)
+
+
+@app.cell
+def _(M, Tr, g, np):
+    Tr(
+        x=0.0,
+        dx=0.0,
+        y=10.0,
+        dy=0.0,
+        theta=np.pi / 6,
+        dtheta=0.0,
+        z=-M * g,
+        dz=0.0,
+    )
     return
 
 

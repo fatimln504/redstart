@@ -2995,11 +2995,11 @@ def _(mo):
 
 
 @app.cell
-def _(M, booster_anim, compute, g, l, mo, np, plt, world):
-    def run_graphical_validation():
-        tf = 10.0
+def _(M, compute, g, l, np, plt):
+    def run_graphical_validation_plots():
+        validation_tf = 10.0
 
-        fun = compute(
+        validation_fun = compute(
             x_0=5.0,
             dx_0=0.0,
             y_0=20.0,
@@ -3016,29 +3016,27 @@ def _(M, booster_anim, compute, g, l, mo, np, plt, world):
             dtheta_tf=0.0,
             z_tf=-M * g,
             dz_tf=0.0,
-            tf=tf,
+            tf=validation_tf,
         )
 
-        t_values = np.linspace(0.0, tf, 1000)
-        values = np.array([fun(t) for t in t_values])
+        validation_t_values = np.linspace(0.0, validation_tf, 1000)
+        validation_values = np.array([validation_fun(t) for t in validation_t_values])
 
-        x_values = values[:, 0]
-        dx_values = values[:, 1]
-        y_values = values[:, 2]
-        dy_values = values[:, 3]
-        theta_values = values[:, 4]
-        dtheta_values = values[:, 5]
-        z_values = values[:, 6]
-        dz_values = values[:, 7]
-        f_values = values[:, 8]
-        phi_values = values[:, 9]
+        x_values = validation_values[:, 0]
+        y_values = validation_values[:, 2]
+        theta_values = validation_values[:, 4]
+        z_values = validation_values[:, 6]
+        f_values = validation_values[:, 8]
+        phi_values = validation_values[:, 9]
 
         print("Initial value fun(0):")
-        print(fun(0.0))
+        print(validation_fun(0.0))
         print("-" * 50)
+
         print("Final value fun(tf):")
-        print(fun(tf))
+        print(validation_fun(validation_tf))
         print("-" * 50)
+
         print("min z =", np.min(z_values))
         print("max |theta| =", np.max(np.abs(theta_values)))
         print("max |phi| =", np.max(np.abs(phi_values)))
@@ -3047,27 +3045,27 @@ def _(M, booster_anim, compute, g, l, mo, np, plt, world):
 
         fig_validation, ax_validation = plt.subplots(4, 1, figsize=(10, 10), sharex=True)
 
-        ax_validation[0].plot(t_values, x_values, label=r"$x(t)$")
-        ax_validation[0].plot(t_values, y_values, label=r"$y(t)$")
+        ax_validation[0].plot(validation_t_values, x_values, label=r"$x(t)$")
+        ax_validation[0].plot(validation_t_values, y_values, label=r"$y(t)$")
         ax_validation[0].set_ylabel("position (m)")
         ax_validation[0].grid(True)
         ax_validation[0].legend()
 
-        ax_validation[1].plot(t_values, theta_values, label=r"$\theta(t)$")
-        ax_validation[1].plot(t_values, phi_values, label=r"$\phi(t)$")
+        ax_validation[1].plot(validation_t_values, theta_values, label=r"$\theta(t)$")
+        ax_validation[1].plot(validation_t_values, phi_values, label=r"$\phi(t)$")
         ax_validation[1].axhline(np.pi / 2, color="grey", ls="--", label=r"$\pm \pi/2$")
         ax_validation[1].axhline(-np.pi / 2, color="grey", ls="--")
         ax_validation[1].set_ylabel("angle (rad)")
         ax_validation[1].grid(True)
         ax_validation[1].legend()
 
-        ax_validation[2].plot(t_values, z_values, label=r"$z(t)$")
+        ax_validation[2].plot(validation_t_values, z_values, label=r"$z(t)$")
         ax_validation[2].axhline(0, color="grey", ls="--", label=r"$z=0$")
         ax_validation[2].set_ylabel(r"$z(t)$")
         ax_validation[2].grid(True)
         ax_validation[2].legend()
 
-        ax_validation[3].plot(t_values, f_values, label=r"$f(t)$")
+        ax_validation[3].plot(validation_t_values, f_values, label=r"$f(t)$")
         ax_validation[3].set_xlabel("time $t$ (s)")
         ax_validation[3].set_ylabel("force")
         ax_validation[3].grid(True)
@@ -3076,22 +3074,33 @@ def _(M, booster_anim, compute, g, l, mo, np, plt, world):
         fig_validation.suptitle("Graphical validation of the admissible path")
         fig_validation.tight_layout()
 
+        return fig_validation, validation_fun, validation_tf
+
+
+    graphical_validation_fig, validation_fun, validation_tf = run_graphical_validation_plots()
+    graphical_validation_fig
+    return validation_fun, validation_tf
+
+
+@app.cell
+def _(booster_anim, mo, validation_fun, validation_tf, world):
+    def run_graphical_validation_animation(validation_fun, validation_tf):
         def x_anim(t):
-            return fun(t)[0]
+            return validation_fun(t)[0]
 
         def y_anim(t):
-            return fun(t)[2]
+            return validation_fun(t)[2]
 
         def theta_anim(t):
-            return fun(t)[4]
+            return validation_fun(t)[4]
 
         def f_anim(t):
-            return fun(t)[8]
+            return validation_fun(t)[8]
 
         def phi_anim(t):
-            return fun(t)[9]
+            return validation_fun(t)[9]
 
-        animation_validation = mo.Html(
+        return mo.Html(
             world(
                 [-2, 7, -2, 22],
                 booster_anim(
@@ -3100,23 +3109,18 @@ def _(M, booster_anim, compute, g, l, mo, np, plt, world):
                     theta_anim,
                     f_anim,
                     phi_anim,
-                    T=tf,
+                    T=validation_tf,
                 ),
             )
         ).center()
 
-        return mo.vstack(
-            [
-                mo.md("### Graphical validation"),
-                fig_validation,
-                mo.md("### Animation"),
-                animation_validation,
-            ]
-        )
 
+    graphical_validation_animation = run_graphical_validation_animation(
+        validation_fun,
+        validation_tf,
+    )
 
-    graphical_validation_output = run_graphical_validation()
-    graphical_validation_output
+    graphical_validation_animation
     return
 
 

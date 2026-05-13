@@ -2254,6 +2254,114 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
+    Le centre de masse du booster est le point :
+
+    \[
+    G=
+    \begin{bmatrix}
+    x\\
+    y
+    \end{bmatrix}.
+    \]
+
+    Le point \(h\) est défini par :
+
+    \[
+    h=
+    \begin{bmatrix}
+    x-\dfrac{\ell}{6}\sin\theta\\[4pt]
+    y+\dfrac{\ell}{6}\cos\theta
+    \end{bmatrix}
+    =
+    \begin{bmatrix}
+    x\\
+    y
+    \end{bmatrix}
+    +
+    \frac{\ell}{6}
+    \begin{bmatrix}
+    -\sin\theta\\
+    \cos\theta
+    \end{bmatrix}.
+    \]
+
+    Le vecteur :
+
+    \[
+    \begin{bmatrix}
+    -\sin\theta\\
+    \cos\theta
+    \end{bmatrix}
+    \]
+
+    est dirigé suivant l’axe du booster, vers sa partie supérieure.
+    Donc \(h\) est un point situé sur l’axe du booster, à une distance \(\ell/6\) du centre de masse vers le haut.
+
+    On peut aussi comparer \(h\) avec les extrémités du booster.
+
+    Le bas du booster, côté réacteur, est :
+
+    \[
+    B=
+    \begin{bmatrix}
+    x+\dfrac{\ell}{2}\sin\theta\\[4pt]
+    y-\dfrac{\ell}{2}\cos\theta
+    \end{bmatrix}.
+    \]
+
+    Le haut du booster est :
+
+    \[
+    T=
+    \begin{bmatrix}
+    x-\dfrac{\ell}{2}\sin\theta\\[4pt]
+    y+\dfrac{\ell}{2}\cos\theta
+    \end{bmatrix}.
+    \]
+
+    Le point \(h\) est donc situé entre \(B\) et \(T\), sur l’axe du booster.
+
+    Plus précisément :
+
+    - \(h\) est à une distance \(\ell/6\) au-dessus du centre de masse ;
+    - \(h\) est à une distance \(2\ell/3\) du bas du booster ;
+    - \(h\) est à une distance \(\ell/3\) du haut du booster.
+
+    Ainsi, \(h\) est un point placé sur l’axe du booster, plus proche du haut que du bas, exactement à \(2/3\) de la longueur depuis le réacteur.
+    """)
+    return
+
+
+@app.cell
+def _(booster, l, mo, np, svg, world):
+    def draw_h_scene(x, y, theta):
+        hx = x - (l / 6) * np.sin(theta)
+        hy = y + (l / 6) * np.cos(theta)
+
+        xb = x + (l / 2) * np.sin(theta)
+        yb = y - (l / 2) * np.cos(theta)
+
+        xt = x - (l / 2) * np.sin(theta)
+        yt = y + (l / 2) * np.cos(theta)
+
+        return mo.Html(
+            world(
+                [-2, 2, -1, 3],
+                booster(x, y, theta, 0, 0),
+                svg.circle(cx=x, cy=y, r=0.05, fill="red"),     # centre
+                svg.circle(cx=hx, cy=hy, r=0.05, fill="blue"),  # point h
+                svg.circle(cx=xb, cy=yb, r=0.04, fill="green"), # bas
+                svg.circle(cx=xt, cy=yt, r=0.04, fill="orange") # haut
+            )
+        )
+
+    draw_h_scene(0, 1, np.pi / 6)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
     ## 🧩 First and Second-Order Derivatives
 
     Compute $\dot{h}$ as a function of $\dot{x}$, $\dot{y}$, $\theta$ and $\dot{\theta}$ (and constants) and then $\ddot{h}$ as a function of $\theta$ and $z$ (and constants) when the auxiliary system is plugged in the booster.
